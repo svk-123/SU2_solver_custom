@@ -3084,6 +3084,7 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
   bool implicit         = (config->GetKind_TimeIntScheme_Flow() == EULER_IMPLICIT);
   bool low_fidelity     = (config->GetLowFidelitySim() && (iMesh == MESH_1));
   bool second_order     = (((config->GetSpatialOrder_Flow() == SECOND_ORDER) || (config->GetSpatialOrder_Flow() == SECOND_ORDER_LIMITER)) && ((iMesh == MESH_0) || low_fidelity));
+  bool third_order      = (config->GetSpatialOrder_Flow() == THIRD_ORDER);
   bool limiter          = ((config->GetSpatialOrder_Flow() == SECOND_ORDER_LIMITER) && !low_fidelity);
   bool freesurface      = (config->GetKind_Regime() == FREESURFACE);
   bool compressible     = (config->GetKind_Regime() == COMPRESSIBLE);
@@ -3208,7 +3209,97 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
       numerics->SetSecondary(Secondary_i, Secondary_j);
       
       
-    } else {
+    } else if (third_order && !freesurface) {
+      
+      for (iDim = 0; iDim < nDim; iDim++) {
+        Vector_i[iDim] = 0.5*(geometry->node[jPoint]->GetCoord(iDim) - geometry->node[iPoint]->GetCoord(iDim));
+        Vector_j[iDim] = 0.5*(geometry->node[iPoint]->GetCoord(iDim) - geometry->node[jPoint]->GetCoord(iDim));
+      }
+      
+      Gradient_i = node[iPoint]->GetGradient_Primitive();
+      Gradient_j = node[jPoint]->GetGradient_Primitive();
+      if (limiter) {
+    	  Limiter_i = node[iPoint]->GetLimiter_Primitive();
+        Limiter_j = node[jPoint]->GetLimiter_Primitive();
+      }
+      
+      for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
+        Project_Grad_i = 0.0; Project_Grad_j = 0.0;
+        for (iDim = 0; iDim < nDim; iDim++) {
+          Project_Grad_i += Vector_i[iDim]*Gradient_i[iVar][iDim];
+          Project_Grad_j += Vector_j[iDim]*Gradient_j[iVar][iDim];
+        }
+        if (limiter) {
+          Primitive_i[iVar] = V_i[iVar] + Limiter_i[iVar]*Project_Grad_i;
+          Primitive_j[iVar] = V_j[iVar] + Limiter_j[iVar]*Project_Grad_j;
+        }
+        else {
+          Primitive_i[iVar] = V_i[iVar] + Project_Grad_i;
+          Primitive_j[iVar] = V_j[iVar] + Project_Grad_j;
+        }
+      }
+      
+      /*--- Check for non-physical solutions after reconstruction. If found,
+       use the cell-average value of the solution. This results in a locally
+       first-order approximation, but this is typically only active
+       during the start-up of a calculation. ---*/
+      
+      if (compressible) {
+        neg_pressure_i = (Primitive_i[nDim+1] < 0.0);
+        neg_pressure_j = (Primitive_j[nDim+1] < 0.0);
+        neg_density_i  = (Primitive_i[nDim+2] < 0.0);
+        neg_density_j  = (Primitive_j[nDim+2] < 0.0);
+      }
+      
+      /*--- If non-physical, use the cell-averaged state. ---*/
+      
+      if (neg_density_i || neg_pressure_i) {
+        for (iVar = 0; iVar < nVar; iVar++)
+          Primitive_i[iVar] = V_i[iVar];
+        counter_local++;
+      }
+      if (neg_density_j || neg_pressure_j) {
+        for (iVar = 0; iVar < nVar; iVar++)
+          Primitive_j[iVar] = V_j[iVar];
+        counter_local++;
+      }
+      
+      /*--- If compressible, compute 2nd order reconstruction for the secondary variables ---*/
+
+      if (compressible) {
+        
+        Gradient_i = node[iPoint]->GetGradient_Secondary();
+        Gradient_j = node[jPoint]->GetGradient_Secondary();
+        if (limiter) {
+          Limiter_i = node[iPoint]->GetLimiter_Secondary();
+          Limiter_j = node[jPoint]->GetLimiter_Secondary();
+        }
+        
+        for (iVar = 0; iVar < nSecondaryVarGrad; iVar++) {
+          Project_Grad_i = 0.0; Project_Grad_j = 0.0;
+          for (iDim = 0; iDim < nDim; iDim++) {
+            Project_Grad_i += Vector_i[iDim]*Gradient_i[iVar][iDim];
+            Project_Grad_j += Vector_j[iDim]*Gradient_j[iVar][iDim];
+          }
+          if (limiter) {
+            Secondary_i[iVar] = S_i[iVar] + Limiter_i[iVar]*Project_Grad_i;
+            Secondary_j[iVar] = S_j[iVar] + Limiter_j[iVar]*Project_Grad_j;
+          }
+          else {
+            Secondary_i[iVar] = S_i[iVar] + Project_Grad_i;
+            Secondary_j[iVar] = S_j[iVar] + Project_Grad_j;
+          }
+        }
+        
+      }
+      
+      /*--- Set conservative variables with reconstruction ---*/
+      
+      numerics->SetPrimitive(Primitive_i, Primitive_j);
+      numerics->SetSecondary(Secondary_i, Secondary_j);
+      
+      
+    } else{
       
       /*--- Set conservative variables without reconstruction ---*/
       
@@ -4619,6 +4710,142 @@ void CEulerSolver::SetPrimitive_Gradient_LS(CGeometry *geometry, CConfig *config
   
 }
 
+void CEulerSolver::SetPrimitive_Gradient_SDWLS(CGeometry *geometry, CConfig *config) {
+  
+  unsigned short iVar, iDim, jDim, iNeigh;
+  unsigned long iPoint, jPoint;
+  double *PrimVar_i, *PrimVar_j, *Coord_i, *Coord_j, r11, r12, r13, r22, r23, r23_a,
+  r23_b, r33, weight, product, z11, z12, z13, z22, z23, z33, detR2;
+  bool singular;
+  
+  /*--- Loop over points of the grid ---*/
+  
+  for (iPoint = 0; iPoint < nPointDomain; iPoint++) {
+    
+    /*--- Set the value of the singular ---*/
+    singular = false;
+    
+    /*--- Get coordinates ---*/
+    
+    Coord_i = geometry->node[iPoint]->GetCoord();
+    
+    /*--- Get primitives from CVariable ---*/
+    
+    PrimVar_i = node[iPoint]->GetPrimitive();
+    
+    /*--- Inizialization of variables ---*/
+    
+    for (iVar = 0; iVar < nPrimVarGrad; iVar++)
+      for (iDim = 0; iDim < nDim; iDim++)
+        cvector[iVar][iDim] = 0.0;
+    
+    r11 = 0.0; r12 = 0.0;   r13 = 0.0;    r22 = 0.0;
+    r23 = 0.0; r23_a = 0.0; r23_b = 0.0;  r33 = 0.0; detR2 = 0.0;
+    
+    for (iNeigh = 0; iNeigh < geometry->node[iPoint]->GetnPoint(); iNeigh++) {
+      jPoint = geometry->node[iPoint]->GetPoint(iNeigh);
+      Coord_j = geometry->node[jPoint]->GetCoord();
+      
+      PrimVar_j = node[jPoint]->GetPrimitive();
+      
+      weight = 0.0;
+      for (iDim = 0; iDim < nDim; iDim++)
+        weight += (Coord_j[iDim]-Coord_i[iDim])*(Coord_j[iDim]-Coord_i[iDim]);
+      
+      /*--- Sumations for entries of upper triangular matrix R ---*/
+      
+      if (weight != 0.0) {
+        
+        r11 += (Coord_j[0]-Coord_i[0])*(Coord_j[0]-Coord_i[0])/weight;
+        r12 += (Coord_j[0]-Coord_i[0])*(Coord_j[1]-Coord_i[1])/weight;
+        r22 += (Coord_j[1]-Coord_i[1])*(Coord_j[1]-Coord_i[1])/weight;
+        
+        if (nDim == 3) {
+          r13 += (Coord_j[0]-Coord_i[0])*(Coord_j[2]-Coord_i[2])/weight;
+          r23_a += (Coord_j[1]-Coord_i[1])*(Coord_j[2]-Coord_i[2])/weight;
+          r23_b += (Coord_j[0]-Coord_i[0])*(Coord_j[2]-Coord_i[2])/weight;
+          r33 += (Coord_j[2]-Coord_i[2])*(Coord_j[2]-Coord_i[2])/weight;
+        }
+        
+        /*--- Entries of c:= transpose(A)*b ---*/
+        
+        for (iVar = 0; iVar < nPrimVarGrad; iVar++)
+          for (iDim = 0; iDim < nDim; iDim++)
+            cvector[iVar][iDim] += (Coord_j[iDim]-Coord_i[iDim])*(PrimVar_j[iVar]-PrimVar_i[iVar])/weight;
+        
+      }
+      
+    }
+    
+    /*--- Entries of upper triangular matrix R ---*/
+    
+    if (r11 >= 0.0) r11 = sqrt(r11); else r11 = 0.0;
+    if (r11 != 0.0) r12 = r12/r11; else r12 = 0.0;
+    if (r22-r12*r12 >= 0.0) r22 = sqrt(r22-r12*r12); else r22 = 0.0;
+    
+    if (nDim == 3) {
+      if (r11 != 0.0) r13 = r13/r11; else r13 = 0.0;
+      if ((r22 != 0.0) && (r11*r22 != 0.0)) r23 = r23_a/r22 - r23_b*r12/(r11*r22); else r23 = 0.0;
+      if (r33-r23*r23-r13*r13 >= 0.0) r33 = sqrt(r33-r23*r23-r13*r13); else r33 = 0.0;
+    }
+    
+    /*--- Compute determinant ---*/
+    
+    if (nDim == 2) detR2 = (r11*r22)*(r11*r22);
+    else detR2 = (r11*r22*r33)*(r11*r22*r33);
+    
+    /*--- Detect singular matrices ---*/
+    
+    if (abs(detR2) <= EPS) { detR2 = 1.0; singular = true; }
+    
+    /*--- S matrix := inv(R)*traspose(inv(R)) ---*/
+    
+    if (singular) {
+      for (iDim = 0; iDim < nDim; iDim++)
+        for (jDim = 0; jDim < nDim; jDim++)
+          Smatrix[iDim][jDim] = 0.0;
+    }
+    else {
+      if (nDim == 2) {
+        Smatrix[0][0] = (r12*r12+r22*r22)/detR2;
+        Smatrix[0][1] = -r11*r12/detR2;
+        Smatrix[1][0] = Smatrix[0][1];
+        Smatrix[1][1] = r11*r11/detR2;
+      }
+      else {
+        z11 = r22*r33; z12 = -r12*r33; z13 = r12*r23-r13*r22;
+        z22 = r11*r33; z23 = -r11*r23; z33 = r11*r22;
+        Smatrix[0][0] = (z11*z11+z12*z12+z13*z13)/detR2;
+        Smatrix[0][1] = (z12*z22+z13*z23)/detR2;
+        Smatrix[0][2] = (z13*z33)/detR2;
+        Smatrix[1][0] = Smatrix[0][1];
+        Smatrix[1][1] = (z22*z22+z23*z23)/detR2;
+        Smatrix[1][2] = (z23*z33)/detR2;
+        Smatrix[2][0] = Smatrix[0][2];
+        Smatrix[2][1] = Smatrix[1][2];
+        Smatrix[2][2] = (z33*z33)/detR2;
+      }
+    }
+    
+    /*--- Computation of the gradient: S*c ---*/
+    for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
+      for (iDim = 0; iDim < nDim; iDim++) {
+        product = 0.0;
+        for (jDim = 0; jDim < nDim; jDim++) {
+          product += Smatrix[iDim][jDim]*cvector[iVar][jDim];
+        }
+        
+        node[iPoint]->SetGradient_Primitive(iVar, iDim, product);
+      }
+    }
+    
+  }
+  
+  Set_MPI_Primitive_Gradient(geometry, config);
+  
+}
+
+
 void CEulerSolver::SetPrimitive_Limiter(CGeometry *geometry, CConfig *config) {
   
   unsigned long iEdge, iPoint, jPoint;
@@ -4997,6 +5224,143 @@ void CEulerSolver::SetSecondary_Gradient_LS(CGeometry *geometry, CConfig *config
   Set_MPI_Secondary_Gradient(geometry, config);
   
 }
+
+void CEulerSolver::SetSecondary_Gradient_SDWLS(CGeometry *geometry, CConfig *config) {
+  
+  unsigned short iVar, iDim, jDim, iNeigh;
+  unsigned long iPoint, jPoint;
+  double *SecondaryVar_i, *SecondaryVar_j, *Coord_i, *Coord_j, r11, r12, r13, r22, r23, r23_a,
+  r23_b, r33, weight, product, z11, z12, z13, z22, z23, z33, detR2;
+  bool singular;
+  
+  /*--- Loop over points of the grid ---*/
+  
+  for (iPoint = 0; iPoint < nPointDomain; iPoint++) {
+    
+    /*--- Set the value of the singular ---*/
+    singular = false;
+    
+    /*--- Get coordinates ---*/
+    
+    Coord_i = geometry->node[iPoint]->GetCoord();
+    
+    /*--- Get Secondarys from CVariable ---*/
+    
+    SecondaryVar_i = node[iPoint]->GetSecondary();
+    
+    /*--- Inizialization of variables ---*/
+    
+    for (iVar = 0; iVar < nSecondaryVarGrad; iVar++)
+      for (iDim = 0; iDim < nDim; iDim++)
+        cvector[iVar][iDim] = 0.0;
+    
+    r11 = 0.0; r12 = 0.0;   r13 = 0.0;    r22 = 0.0;
+    r23 = 0.0; r23_a = 0.0; r23_b = 0.0;  r33 = 0.0; detR2 = 0.0;
+    
+    for (iNeigh = 0; iNeigh < geometry->node[iPoint]->GetnPoint(); iNeigh++) {
+      jPoint = geometry->node[iPoint]->GetPoint(iNeigh);
+      Coord_j = geometry->node[jPoint]->GetCoord();
+      
+      SecondaryVar_j = node[jPoint]->GetSecondary();
+      
+      weight = 0.0;
+      for (iDim = 0; iDim < nDim; iDim++)
+        weight += (Coord_j[iDim]-Coord_i[iDim])*(Coord_j[iDim]-Coord_i[iDim]);
+      
+      /*--- Sumations for entries of upper triangular matrix R ---*/
+      
+      if (weight != 0.0) {
+        
+        r11 += (Coord_j[0]-Coord_i[0])*(Coord_j[0]-Coord_i[0])/weight;
+        r12 += (Coord_j[0]-Coord_i[0])*(Coord_j[1]-Coord_i[1])/weight;
+        r22 += (Coord_j[1]-Coord_i[1])*(Coord_j[1]-Coord_i[1])/weight;
+        
+        if (nDim == 3) {
+          r13 += (Coord_j[0]-Coord_i[0])*(Coord_j[2]-Coord_i[2])/weight;
+          r23_a += (Coord_j[1]-Coord_i[1])*(Coord_j[2]-Coord_i[2])/weight;
+          r23_b += (Coord_j[0]-Coord_i[0])*(Coord_j[2]-Coord_i[2])/weight;
+          r33 += (Coord_j[2]-Coord_i[2])*(Coord_j[2]-Coord_i[2])/weight;
+        }
+        
+        /*--- Entries of c:= transpose(A)*b ---*/
+        
+        for (iVar = 0; iVar < nSecondaryVarGrad; iVar++)
+          for (iDim = 0; iDim < nDim; iDim++)
+            cvector[iVar][iDim] += (Coord_j[iDim]-Coord_i[iDim])*(SecondaryVar_j[iVar]-SecondaryVar_i[iVar])/weight;
+        
+      }
+      
+    }
+    
+    /*--- Entries of upper triangular matrix R ---*/
+    
+    if (r11 >= 0.0) r11 = sqrt(r11); else r11 = 0.0;
+    if (r11 != 0.0) r12 = r12/r11; else r12 = 0.0;
+    if (r22-r12*r12 >= 0.0) r22 = sqrt(r22-r12*r12); else r22 = 0.0;
+    
+    if (nDim == 3) {
+      if (r11 != 0.0) r13 = r13/r11; else r13 = 0.0;
+      if ((r22 != 0.0) && (r11*r22 != 0.0)) r23 = r23_a/r22 - r23_b*r12/(r11*r22); else r23 = 0.0;
+      if (r33-r23*r23-r13*r13 >= 0.0) r33 = sqrt(r33-r23*r23-r13*r13); else r33 = 0.0;
+    }
+    
+    /*--- Compute determinant ---*/
+    
+    if (nDim == 2) detR2 = (r11*r22)*(r11*r22);
+    else detR2 = (r11*r22*r33)*(r11*r22*r33);
+    
+    /*--- Detect singular matrices ---*/
+    
+    if (abs(detR2) <= EPS) { detR2 = 1.0; singular = true; }
+    
+    /*--- S matrix := inv(R)*traspose(inv(R)) ---*/
+    
+    if (singular) {
+      for (iDim = 0; iDim < nDim; iDim++)
+        for (jDim = 0; jDim < nDim; jDim++)
+          Smatrix[iDim][jDim] = 0.0;
+    }
+    else {
+      if (nDim == 2) {
+        Smatrix[0][0] = (r12*r12+r22*r22)/detR2;
+        Smatrix[0][1] = -r11*r12/detR2;
+        Smatrix[1][0] = Smatrix[0][1];
+        Smatrix[1][1] = r11*r11/detR2;
+      }
+      else {
+        z11 = r22*r33; z12 = -r12*r33; z13 = r12*r23-r13*r22;
+        z22 = r11*r33; z23 = -r11*r23; z33 = r11*r22;
+        Smatrix[0][0] = (z11*z11+z12*z12+z13*z13)/detR2;
+        Smatrix[0][1] = (z12*z22+z13*z23)/detR2;
+        Smatrix[0][2] = (z13*z33)/detR2;
+        Smatrix[1][0] = Smatrix[0][1];
+        Smatrix[1][1] = (z22*z22+z23*z23)/detR2;
+        Smatrix[1][2] = (z23*z33)/detR2;
+        Smatrix[2][0] = Smatrix[0][2];
+        Smatrix[2][1] = Smatrix[1][2];
+        Smatrix[2][2] = (z33*z33)/detR2;
+      }
+    }
+    
+    /*--- Computation of the gradient: S*c ---*/
+    for (iVar = 0; iVar < nSecondaryVarGrad; iVar++) {
+      for (iDim = 0; iDim < nDim; iDim++) {
+        product = 0.0;
+        for (jDim = 0; jDim < nDim; jDim++) {
+          product += Smatrix[iDim][jDim]*cvector[iVar][jDim];
+        }
+        
+        node[iPoint]->SetGradient_Secondary(iVar, iDim, product);
+      }
+    }
+    
+  }
+  
+  Set_MPI_Secondary_Gradient(geometry, config);
+  
+}
+
+
 
 void CEulerSolver::SetSecondary_Limiter(CGeometry *geometry, CConfig *config) {
   
