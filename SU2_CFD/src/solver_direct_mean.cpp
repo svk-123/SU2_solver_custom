@@ -2778,7 +2778,10 @@ void CEulerSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container
     	SetPrimitive_Gradient_LS(geometry, config);
     	if (compressible && !ideal_gas) SetSecondary_Gradient_LS(geometry, config);
     }
-
+    if (config->GetKind_Gradient_Method() == SDWLS){
+    	SetPrimitive_Gradient_SDWLS(geometry, config);
+    	if (compressible && !ideal_gas) SetSecondary_Gradient_SDWLS(geometry, config);
+    }
     
     /*--- Limiter computation ---*/
     
@@ -4485,7 +4488,7 @@ void CEulerSolver::SetPrimitive_Gradient_GG(CGeometry *geometry, CConfig *config
   
 }
 
-void CEulerSolver::SetPrimitive_Gradient_LS(CGeometry *geometry, CConfig *config) {
+void CEulerSolver::SetPrimitive_Gradient_SDWLS(CGeometry *geometry, CConfig *config) {
   
   unsigned short iVar, iDim, jDim, iNeigh;
   unsigned long iPoint, jPoint;
@@ -4562,6 +4565,7 @@ void CEulerSolver::SetPrimitive_Gradient_LS(CGeometry *geometry, CConfig *config
 		
 		for(i = 0;i<n;i++)
 		{
+			
 		 iNeigh=i;
          jPoint = geometry->node[iPoint]->GetPoint(iNeigh);
          Coord_j = geometry->node[jPoint]->GetCoord();
@@ -4586,8 +4590,8 @@ void CEulerSolver::SetPrimitive_Gradient_LS(CGeometry *geometry, CConfig *config
 				
 				du = PrimVar_j[z]-PrimVar_i[z];
 				
-				w = 1.0/(fabs(du) + del);
-				
+				//w = 1.0/(fabs(du) + del);
+				w=1.0;
 				w_A[i][0] = w * A[i][0];
 				w_A[i][1] = w * A[i][1];
 				
@@ -4698,7 +4702,7 @@ void CEulerSolver::SetPrimitive_Gradient_LS(CGeometry *geometry, CConfig *config
   
 }
 
-void CEulerSolver::SetPrimitive_Gradient_SDWLS(CGeometry *geometry, CConfig *config) {
+void CEulerSolver::SetPrimitive_Gradient_LS(CGeometry *geometry, CConfig *config) {
   
   unsigned short iVar, iDim, jDim, iNeigh;
   unsigned long iPoint, jPoint;
@@ -9950,6 +9954,11 @@ void CNSSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container, C
   if (config->GetKind_Gradient_Method() == WEIGHTED_LEAST_SQUARES){
 	  SetPrimitive_Gradient_LS(geometry, config);
 	  if (compressible && !ideal_gas) SetSecondary_Gradient_LS(geometry, config);
+  }
+  
+    if (config->GetKind_Gradient_Method() == SDWLS){
+	  SetPrimitive_Gradient_SDWLS(geometry, config);
+	  if (compressible && !ideal_gas) SetSecondary_Gradient_SDWLS(geometry, config);
   }
   
   /*--- Compute the limiter in case we need it in the turbulence model
