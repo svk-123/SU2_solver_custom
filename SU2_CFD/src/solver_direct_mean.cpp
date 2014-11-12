@@ -4576,7 +4576,7 @@ void CEulerSolver::SetPrimitive_Gradient_LS(CGeometry *geometry, CConfig *config
 
 		}
 		
-		for(z=0;z<3;z++)
+		for(z=0;z<nPrimVarGrad;z++)
 		{ 
 			for(i=0;i<n;i++)
 			{
@@ -4587,7 +4587,7 @@ void CEulerSolver::SetPrimitive_Gradient_LS(CGeometry *geometry, CConfig *config
 				du = PrimVar_j[z]-PrimVar_i[z];
 				
 				w = 1.0/(fabs(du) + del);
-				//w=1.0;
+				
 				w_A[i][0] = w * A[i][0];
 				w_A[i][1] = w * A[i][1];
 				
@@ -4680,7 +4680,7 @@ void CEulerSolver::SetPrimitive_Gradient_LS(CGeometry *geometry, CConfig *config
 		
         
         /*--- Computation of the gradient: S*c ---*/
-    for (iVar = 0; iVar < 3; iVar++) {
+    for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
       for (iDim = 0; iDim < nDim; iDim++) {
 		  
           product = derivatives[iVar][iDim];
@@ -4690,16 +4690,7 @@ void CEulerSolver::SetPrimitive_Gradient_LS(CGeometry *geometry, CConfig *config
       }
     }
     
-     for (iVar = 3; iVar < nPrimVarGrad; iVar++) {
-      for (iDim = 0; iDim < nDim; iDim++) {
-		  
-          product = 0.0;
-           
-          node[iPoint]->SetGradient_Primitive(iVar, iDim, product);
-          
-      }
-    }
-           
+               
 
   }
   
