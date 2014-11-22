@@ -162,7 +162,7 @@ CXX = g++
 CXXDEPMODE = depmode=gcc3
 CXXFLAGS = -g -O2
 CYGPATH_W = echo
-DEFS = -DPACKAGE_NAME=\"SU2\" -DPACKAGE_TARNAME=\"SU2\" -DPACKAGE_VERSION=\"3.2.3\" -DPACKAGE_STRING=\"SU2\ 3.2.3\" -DPACKAGE_BUGREPORT=\"susquared-dev@lists.stanford.edu\" -DPACKAGE_URL=\"http://su2.stanford.edu\" -DPACKAGE=\"SU2\" -DVERSION=\"3.2.3\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DSIZEOF_SHORT_INT=2 -DSIZEOF_INT=4 -DSIZEOF_UNSIGNED_INT=4 -DSIZEOF_LONG_INT=8 -DSIZEOF_FLOAT=4 -DSIZEOF_DOUBLE=8 -DSIZEOF_VOID_P=8 -DSIZEOF_VOID_P=8 -DHAVE_TECPLOT_API=1 -DHAVE_TECPLOT_API_112=1 -DHAVE_METIS=1 -DTLS=__thread
+DEFS = -DPACKAGE_NAME=\"SU2\" -DPACKAGE_TARNAME=\"SU2\" -DPACKAGE_VERSION=\"3.2.3\" -DPACKAGE_STRING=\"SU2\ 3.2.3\" -DPACKAGE_BUGREPORT=\"susquared-dev@lists.stanford.edu\" -DPACKAGE_URL=\"http://su2.stanford.edu\" -DPACKAGE=\"SU2\" -DVERSION=\"3.2.3\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DSIZEOF_SHORT_INT=2 -DSIZEOF_INT=4 -DSIZEOF_UNSIGNED_INT=4 -DSIZEOF_LONG_INT=8 -DSIZEOF_FLOAT=4 -DSIZEOF_DOUBLE=8 -DSIZEOF_VOID_P=8 -DHAVE_METIS=1 -DTLS=__thread
 DEPDIR = .deps
 ECHO_C = 
 ECHO_N = -n
@@ -201,8 +201,8 @@ SET_MAKE =
 SHELL = /bin/bash
 STRIP = 
 SU2_METIS_CPPFLAGS = -D_FILE_OFFSET_BITS=64 -DNDEBUG -DNDEBUG2 -DHAVE_EXECINFO_H -DHAVE_GETLINE
-TECIO_CPPFLAGS = -DLINUX64 -DLINUX 
-TECIO_INCLUDE = -I$(top_srcdir)/externals/tecio/include
+TECIO_CPPFLAGS = 
+TECIO_INCLUDE = 
 VERSION = 3.2.3
 abs_builddir = /home/vinoth/SU2/SU2-3.2.3/SU2_SOL/obj
 abs_srcdir = /home/vinoth/SU2/SU2-3.2.3/SU2_SOL/obj
@@ -250,8 +250,8 @@ psdir = ${docdir}
 sbindir = ${exec_prefix}/sbin
 sharedstatedir = ${prefix}/com
 srcdir = .
-su2_externals_INCLUDES = -DHAVE_METIS -I$(top_srcdir)/externals/metis/include -DHAVE_TECIO -I$(top_srcdir)/externals/tecio/include 
-su2_externals_LIBS = $(top_builddir)/externals/metis/libmetis.a $(top_builddir)/externals/tecio/libtecio.a 
+su2_externals_INCLUDES = -DHAVE_METIS -I$(top_srcdir)/externals/metis/include 
+su2_externals_LIBS = $(top_builddir)/externals/metis/libmetis.a 
 sysconfdir = ${prefix}/etc
 target = x86_64-unknown-linux-gnu
 target_alias = 
@@ -284,9 +284,9 @@ ___bin_SU2_SOL_SOURCES = ../include/SU2_SOL.hpp \
 # endif
 
 # if BUILD_JSONCPP
-___bin_SU2_SOL_CXXFLAGS = -DHAVE_METIS -I$(top_srcdir)/externals/metis/include -DHAVE_TECIO -I$(top_srcdir)/externals/tecio/include  -DHAVE_CGNS -I/usr/local/include \
+___bin_SU2_SOL_CXXFLAGS = -DHAVE_METIS -I$(top_srcdir)/externals/metis/include  -DHAVE_CGNS -I/usr/local/include \
 	  $(am__empty)
-___bin_SU2_SOL_LDADD = ../../Common/lib/libSU2.a $(top_builddir)/externals/metis/libmetis.a $(top_builddir)/externals/tecio/libtecio.a  \
+___bin_SU2_SOL_LDADD = ../../Common/lib/libSU2.a $(top_builddir)/externals/metis/libmetis.a  \
 	/usr/local/lib/libcgns.a   $(am__empty)
 all: all-am
 

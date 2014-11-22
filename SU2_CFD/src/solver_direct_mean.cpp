@@ -4490,12 +4490,12 @@ void CEulerSolver::SetPrimitive_Gradient_GG(CGeometry *geometry, CConfig *config
 
 void CEulerSolver::SetPrimitive_Gradient_SDWLS(CGeometry *geometry, CConfig *config) {
   
-  unsigned short iVar, iDim, jDim, iNeigh;
-  unsigned long iPoint, jPoint;
+  unsigned short iVar, iDim, jDim, iNeigh , iMarker;
+  unsigned long iPoint, jPoint, iEdge, iVertex;
   double *PrimVar_i, *PrimVar_j, *Coord_i, *Coord_j, r11, r12, r13, r22, r23, r23_a,
   r23_b, r33, weight, product, z11, z12, z13, z22, z23, z33, detR2;
   bool singular;
-  
+
   	int i,l,j,cell_adj,n,m,k,x,z;
 	
 	double **A,dx,dy,du,w,derivatives[nPrimVarGrad+1][nDim+1];
@@ -4510,6 +4510,8 @@ void CEulerSolver::SetPrimitive_Gradient_SDWLS(CGeometry *geometry, CConfig *con
   
   for (iPoint = 0; iPoint < nPointDomain; iPoint++) {
     
+      //Boundary   = config->GetMarker_All_KindBC(iPoint);
+
     /*--- Set the value of the singular ---*/
     singular = false;
     
@@ -4589,9 +4591,16 @@ void CEulerSolver::SetPrimitive_Gradient_SDWLS(CGeometry *geometry, CConfig *con
 				PrimVar_j = node[jPoint]->GetPrimitive();
 				
 				du = PrimVar_j[z]-PrimVar_i[z];
-				
-				//w = 1.0/(fabs(du) + del);
-				w=1.0;
+								
+				w = 1.0/(fabs(du) + del);
+					    
+					  // if (Boundary == HEAT_FLUX) {
+						   
+						//w=1.0;
+						   
+					    //}
+
+				//w=1.0;
 				w_A[i][0] = w * A[i][0];
 				w_A[i][1] = w * A[i][1];
 				
@@ -4694,8 +4703,32 @@ void CEulerSolver::SetPrimitive_Gradient_SDWLS(CGeometry *geometry, CConfig *con
       }
     }
     
-               
+                
 
+  }
+  
+      /*--- Loop boundary edges ---*/
+  for (iMarker = 0; iMarker < geometry->GetnMarker(); iMarker++) {
+    for (iVertex = 0; iVertex < geometry->GetnVertex(iMarker); iVertex++) {
+      iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
+       
+        n = geometry->node[iPoint]->GetnPoint();
+        
+        for(i = 0;i<n;i++)
+		{
+			iNeigh=i;
+			jPoint = geometry->node[iPoint]->GetPoint(iNeigh);
+			
+        for (iVar = 0; iVar < nPrimVarGrad; iVar++)
+          for (iDim = 0; iDim < nDim; iDim++) {
+			  
+          product = 0.0;
+           
+          node[jPoint]->SetGradient_Primitive(iVar, iDim, product);
+         }
+          
+      }
+    }
   }
   
   Set_MPI_Primitive_Gradient(geometry, config);
@@ -8313,7 +8346,6 @@ void CEulerSolver::BC_Interface_Boundary(CGeometry *geometry, CSolver **solver_c
  //         MPI_Irecv(Buffer_Receive_V, nPrimVar, MPI_DOUBLE, jProcessor, jPoint, MPI_COMM_WORLD, &recv_req[0]);
 
           /*--- Wait for the this set of non-blocking recv's to complete ---*/
-
 //          MPI_Waitall(1, recv_req, recv_stat);
           
         }
