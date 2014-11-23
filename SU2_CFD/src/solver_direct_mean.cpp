@@ -2731,8 +2731,8 @@ void CEulerSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container
   bool engine           = ((config->GetnMarker_NacelleInflow() != 0) || (config->GetnMarker_NacelleExhaust() != 0));
   bool fixed_cl         = config->GetFixed_CL_Mode();
   bool ideal_gas = (config->GetKind_FluidModel() == STANDARD_AIR || config->GetKind_FluidModel() == IDEAL_GAS );
-
-  /*--- Compute nacelle inflow and exhaust properties ---*/
+  bool sdwls = (config->GetKind_Reconst_Gradient_Method() != NONE);
+    /*--- Compute nacelle inflow and exhaust properties ---*/
   
   if (engine) { GetNacelle_Properties(geometry, config, iMesh, Output); }
   
@@ -2788,7 +2788,7 @@ void CEulerSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container
     
   }
     
-    if ((second_order && !center) && ((iMesh == MESH_0) || low_fidelity)) {
+    if ((second_order && !center) && sdwls) {
 		
 		if (config->GetKind_Reconst_Gradient_Method() == WLS){
     	SetPrimitive_Reconst_Gradient_WLS(geometry, config);
@@ -3104,6 +3104,7 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
   bool compressible     = (config->GetKind_Regime() == COMPRESSIBLE);
   bool grid_movement    = config->GetGrid_Movement();
   bool roe_turkel       = (config->GetKind_Upwind_Flow() == TURKEL);
+  bool sdwls = (config->GetKind_Reconst_Gradient_Method() != NONE);
   
   for(iEdge = 0; iEdge < geometry->GetnEdge(); iEdge++) {
     
@@ -3139,9 +3140,15 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
         Vector_i[iDim] = 0.5*(geometry->node[jPoint]->GetCoord(iDim) - geometry->node[iPoint]->GetCoord(iDim));
         Vector_j[iDim] = 0.5*(geometry->node[iPoint]->GetCoord(iDim) - geometry->node[jPoint]->GetCoord(iDim));
       }
+     
+      if(sdwls) {
+		Gradient_i = node[iPoint]->GetReconstGradient_Primitive();
+		Gradient_j = node[jPoint]->GetReconstGradient_Primitive();
+	  } else {
+		Gradient_i = node[iPoint]->GetGradient_Primitive();
+		Gradient_j = node[jPoint]->GetGradient_Primitive();
+	  }
       
-      Gradient_i = node[iPoint]->GetReconstGradient_Primitive();
-      Gradient_j = node[jPoint]->GetReconstGradient_Primitive();
       if (limiter) {
     	  Limiter_i = node[iPoint]->GetLimiter_Primitive();
         Limiter_j = node[jPoint]->GetLimiter_Primitive();
@@ -10024,6 +10031,7 @@ void CNSSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container, C
   bool engine               = ((config->GetnMarker_NacelleInflow() != 0) || (config->GetnMarker_NacelleExhaust() != 0));
   bool ideal_gas = (config->GetKind_FluidModel() == STANDARD_AIR || config->GetKind_FluidModel() == IDEAL_GAS );
   bool second_order     = (config->GetSpatialOrder_Flow() == SECOND_ORDER);
+  bool sdwls = (config->GetKind_Reconst_Gradient_Method() != NONE);
   /*--- Compute nacelle inflow and exhaust properties ---*/
   
   if (engine) GetNacelle_Properties(geometry, config, iMesh, Output);
@@ -10083,7 +10091,7 @@ void CNSSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container, C
 	  if (compressible && !ideal_gas) SetSecondary_Gradient_LS(geometry, config);
   }
   
-  if (second_order && !center) {
+  if ((second_order && !center) && sdwls) {
 	  
 	if (config->GetKind_Reconst_Gradient_Method() == SDWLS){
 	  SetPrimitive_Reconst_Gradient_SDWLS(geometry, config);

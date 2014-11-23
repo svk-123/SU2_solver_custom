@@ -590,11 +590,13 @@ static const map<string, ENUM_FLOW_GRADIENT> Gradient_Map = CCreateMap<string, E
  * \brief types of schemes to compute the flow gradient
  */
 enum ENUM_RECONST_GRADIENT {
-  WLS = 1,		/*!< \brief Gradients computation using Green Gauss theorem. */
-  SDWLS = 2	/*!< \brief Gradients computation using Weighted Least Squares. */
+  NO_SDWLS = 1,	
+  WLS = 2,		/*!< \brief Gradients computation using Green Gauss theorem. */
+  SDWLS = 3	/*!< \brief Gradients computation using Weighted Least Squares. */
 
 };
 static const map<string, ENUM_RECONST_GRADIENT> Reconst_Gradient_Map = CCreateMap<string, ENUM_RECONST_GRADIENT>
+("NONE", NO_SDWLS)
 ("WLS", WLS)
 ("SDWLS", SDWLS);
 
