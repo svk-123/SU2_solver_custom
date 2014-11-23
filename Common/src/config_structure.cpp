@@ -584,7 +584,9 @@ void CConfig::SetConfig_Options(unsigned short val_iZone, unsigned short val_nZo
 
   /* DESCRIPTION: Numerical method for spatial gradients */
   addEnumOption("NUM_METHOD_GRAD", Kind_Gradient_Method, Gradient_Map, WEIGHTED_LEAST_SQUARES);
-  /* DESCRIPTION: Coefficient for the limiter */
+    /* DESCRIPTION: Numerical method for reconstruction spatial gradients */
+  addEnumOption("RECONST_METHOD_GRAD", Kind_Reconst_Gradient_Method, Reconst_Gradient_Map, WLS);
+    /* DESCRIPTION: Coefficient for the limiter */
   addDoubleOption("LIMITER_COEFF", LimiterCoeff, 0.5);
   /* DESCRIPTION: Freeze the value of the limiter after a number of iterations */
   addUnsignedLongOption("LIMITER_ITER", LimiterIter, 999999);
@@ -3669,7 +3671,11 @@ void CConfig::SetOutput(unsigned short val_software, unsigned short val_izone) {
     switch (Kind_Gradient_Method) {
       case GREEN_GAUSS: cout << "Gradient computation using Green-Gauss theorem." << endl; break;
       case WEIGHTED_LEAST_SQUARES: cout << "Gradient Computation using weighted Least-Squares method." << endl; break;
-      case SDWLS: cout << "Gradient Computation using SDWLS." << endl; break;
+    }
+    
+    switch (Kind_Reconst_Gradient_Method) {
+      case WLS: cout << "Gradient computation using WLS theorem." << endl; break;
+      case SDWLS: cout << "Gradient Computation using SDWLS method." << endl; break;
     }
 
     if ((Kind_Regime == INCOMPRESSIBLE) || (Kind_Regime == FREESURFACE)) {

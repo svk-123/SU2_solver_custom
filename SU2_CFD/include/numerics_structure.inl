@@ -255,6 +255,7 @@ inline void CNumerics::SetPrimVarGradient(double **val_primvar_grad_i, double **
 	PrimVar_Grad_j = val_primvar_grad_j;
 }
 
+
 inline void CNumerics::SetConsVarGradient(double **val_consvar_grad_i, double **val_consvar_grad_j) {
 	ConsVar_Grad_i = val_consvar_grad_i;
 	ConsVar_Grad_j = val_consvar_grad_j;

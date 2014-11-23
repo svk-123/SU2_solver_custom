@@ -413,14 +413,17 @@ inline void CVariable::AddGradient_Primitive(unsigned short val_var, unsigned sh
 inline void CVariable::SubtractGradient_Primitive(unsigned short val_var, unsigned short val_dim, double val_value) { }
 
 inline double CVariable::GetGradient_Primitive(unsigned short val_var, unsigned short val_dim) { return 0; }
+inline double CVariable::GetReconstGradient_Primitive(unsigned short val_var, unsigned short val_dim) { return 0; }
 
 inline double CVariable::GetLimiter_Primitive(unsigned short val_var) { return 0; }
 
 inline void CVariable::SetGradient_Primitive(unsigned short val_var, unsigned short val_dim, double val_value) { }
+inline void CVariable::SetReconstGradient_Primitive(unsigned short val_var, unsigned short val_dim, double val_value) { }
 
 inline void CVariable::SetLimiter_Primitive(unsigned short val_var, double val_value) { }
 
 inline double **CVariable::GetGradient_Primitive(void) { return NULL; }
+inline double **CVariable::GetReconstGradient_Primitive(void) { return NULL; }
 
 inline double *CVariable::GetLimiter_Primitive(void) { return NULL; }
 
@@ -606,14 +609,17 @@ inline void CEulerVariable::AddGradient_Primitive(unsigned short val_var, unsign
 inline void CEulerVariable::SubtractGradient_Primitive(unsigned short val_var, unsigned short val_dim, double val_value) { Gradient_Primitive[val_var][val_dim] -= val_value; }
 
 inline double CEulerVariable::GetGradient_Primitive(unsigned short val_var, unsigned short val_dim) { return Gradient_Primitive[val_var][val_dim]; }
+inline double CEulerVariable::GetReconstGradient_Primitive(unsigned short val_var, unsigned short val_dim) { return Reconst_Gradient_Primitive[val_var][val_dim]; }
 
 inline double CEulerVariable::GetLimiter_Primitive(unsigned short val_var) { return Limiter_Primitive[val_var]; }
 
 inline void CEulerVariable::SetGradient_Primitive(unsigned short val_var, unsigned short val_dim, double val_value) { Gradient_Primitive[val_var][val_dim] = val_value; }
+inline void CEulerVariable::SetReconstGradient_Primitive(unsigned short val_var, unsigned short val_dim, double val_value) { Reconst_Gradient_Primitive[val_var][val_dim] = val_value; }
 
 inline void CEulerVariable::SetLimiter_Primitive(unsigned short val_var, double val_value) { Limiter_Primitive[val_var] = val_value; }
 
 inline double **CEulerVariable::GetGradient_Primitive(void) { return Gradient_Primitive; }
+inline double **CEulerVariable::GetReconstGradient_Primitive(void) { return Reconst_Gradient_Primitive; }
 
 inline double *CEulerVariable::GetLimiter_Primitive(void) { return Limiter_Primitive; }
 

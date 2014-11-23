@@ -916,8 +916,9 @@ public:
 	 * \param[in] config - Definition of the particular problem.
 	 */
 	virtual void SetPrimitive_Gradient_LS(CGeometry *geometry, CConfig *config);
-  	virtual void SetPrimitive_Gradient_SDWLS(CGeometry *geometry, CConfig *config);
-
+	
+  	virtual void SetPrimitive_Reconst_Gradient_WLS(CGeometry *geometry, CConfig *config);
+  	virtual void SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CConfig *config);
 	/*!
 	 * \brief A virtual member.
 	 * \param[in] geometry - Geometrical definition of the problem.
@@ -931,8 +932,7 @@ public:
 	 * \param[in] config - Definition of the particular problem.
 	 */
 	virtual void SetSecondary_Gradient_LS(CGeometry *geometry, CConfig *config);
-  	virtual void SetSecondary_Gradient_SDWLS(CGeometry *geometry, CConfig *config);
-
+	
     /*!
 	 * \brief A virtual member.
 	 * \param[in] geometry - Geometrical definition of the problem.
@@ -2353,7 +2353,9 @@ public:
 	 * \param[in] config - Definition of the particular problem.
 	 */
 	void SetPrimitive_Gradient_LS(CGeometry *geometry, CConfig *config);
-  	void SetPrimitive_Gradient_SDWLS(CGeometry *geometry, CConfig *config);
+	
+	void SetPrimitive_Reconst_Gradient_WLS(CGeometry *geometry, CConfig *config);
+  	void SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CConfig *config);
   /*!
 	 * \brief Compute the gradient of the primitive variables using Green-Gauss method,
 	 *        and stores the result in the <i>Gradient_Primitive</i> variable.
@@ -2369,7 +2371,7 @@ public:
 	 * \param[in] config - Definition of the particular problem.
 	 */
 	void SetSecondary_Gradient_LS(CGeometry *geometry, CConfig *config);
-    	void SetSecondary_Gradient_SDWLS(CGeometry *geometry, CConfig *config);
+
   /*!
 	 * \brief Compute the gradient of the primitive variables using a Least-Squares method,
 	 *        and stores the result in the <i>Gradient_Primitive</i> variable.

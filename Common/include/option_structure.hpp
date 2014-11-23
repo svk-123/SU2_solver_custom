@@ -579,13 +579,24 @@ static const map<string, ENUM_TIME_INT> Time_Int_Map = CCreateMap<string, ENUM_T
  */
 enum ENUM_FLOW_GRADIENT {
   GREEN_GAUSS = 1,		/*!< \brief Gradients computation using Green Gauss theorem. */
-  WEIGHTED_LEAST_SQUARES = 2,	/*!< \brief Gradients computation using Weighted Least Squares. */
-  SDWLS = 3
+  WEIGHTED_LEAST_SQUARES = 2	/*!< \brief Gradients computation using Weighted Least Squares. */
+
 };
 static const map<string, ENUM_FLOW_GRADIENT> Gradient_Map = CCreateMap<string, ENUM_FLOW_GRADIENT>
 ("GREEN_GAUSS", GREEN_GAUSS)
-("WEIGHTED_LEAST_SQUARES", WEIGHTED_LEAST_SQUARES)
-("SDWLS",SDWLS);
+("WEIGHTED_LEAST_SQUARES", WEIGHTED_LEAST_SQUARES);
+
+/*!
+ * \brief types of schemes to compute the flow gradient
+ */
+enum ENUM_RECONST_GRADIENT {
+  WLS = 1,		/*!< \brief Gradients computation using Green Gauss theorem. */
+  SDWLS = 2	/*!< \brief Gradients computation using Weighted Least Squares. */
+
+};
+static const map<string, ENUM_RECONST_GRADIENT> Reconst_Gradient_Map = CCreateMap<string, ENUM_RECONST_GRADIENT>
+("WLS", WLS)
+("SDWLS", SDWLS);
 
 /*!
  * \brief types of action to take on a geometry structure

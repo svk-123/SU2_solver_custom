@@ -28,6 +28,7 @@ CEulerVariable::CEulerVariable(void) : CVariable() {
 	TS_Source = NULL;
 	Primitive = NULL;
 	Gradient_Primitive = NULL;
+	Reconst_Gradient_Primitive = NULL;
 	Limiter_Primitive = NULL;
   WindGust = NULL;
   WindGustDer = NULL;
@@ -51,6 +52,7 @@ CEulerVariable::CEulerVariable(double val_density, double *val_velocity, double 
 	TS_Source = NULL;
 	Primitive = NULL;
 	Gradient_Primitive = NULL;
+	Reconst_Gradient_Primitive = NULL;
 	Limiter_Primitive = NULL;
   WindGust = NULL;
   WindGustDer = NULL;
@@ -182,6 +184,13 @@ CEulerVariable::CEulerVariable(double val_density, double *val_velocity, double 
       Gradient_Primitive[iVar][iDim] = 0.0;
   }
   
+  Reconst_Gradient_Primitive = new double* [nPrimVarGrad];
+  for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
+    Reconst_Gradient_Primitive[iVar] = new double [nDim];
+    for (iDim = 0; iDim < nDim; iDim++)
+      Reconst_Gradient_Primitive[iVar][iDim] = 0.0;
+  }
+  
   Gradient_Secondary = new double* [nSecondaryVarGrad];
   for (iVar = 0; iVar < nSecondaryVarGrad; iVar++) {
     Gradient_Secondary[iVar] = new double [nDim];
@@ -207,6 +216,7 @@ CEulerVariable::CEulerVariable(double *val_solution, unsigned short val_nDim, un
 	TS_Source = NULL;
 	Primitive = NULL;
 	Gradient_Primitive = NULL;
+	Reconst_Gradient_Primitive = NULL;
   Limiter_Primitive = NULL;
   WindGust = NULL;
   WindGustDer = NULL;
@@ -312,6 +322,13 @@ CEulerVariable::CEulerVariable(double *val_solution, unsigned short val_nDim, un
       Gradient_Primitive[iVar][iDim] = 0.0;
   }
   
+    Reconst_Gradient_Primitive = new double* [nPrimVarGrad];
+  for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
+    Reconst_Gradient_Primitive[iVar] = new double [nDim];
+    for (iDim = 0; iDim < nDim; iDim++)
+      Reconst_Gradient_Primitive[iVar][iDim] = 0.0;
+  }
+  
   Gradient_Secondary = new double* [nSecondaryVarGrad];
   for (iVar = 0; iVar < nSecondaryVarGrad; iVar++) {
     Gradient_Secondary[iVar] = new double [nDim];
@@ -334,6 +351,12 @@ CEulerVariable::~CEulerVariable(void) {
     for (iVar = 0; iVar < nPrimVarGrad; iVar++)
       delete Gradient_Primitive[iVar];
     delete [] Gradient_Primitive;
+  }
+  
+    if (Reconst_Gradient_Primitive != NULL) {
+    for (iVar = 0; iVar < nPrimVarGrad; iVar++)
+      delete Reconst_Gradient_Primitive[iVar];
+    delete [] Reconst_Gradient_Primitive;
   }
   
 }

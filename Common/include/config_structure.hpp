@@ -266,6 +266,7 @@ private:
 	Kind_GasModel,				/*!< \brief Kind of the Gas Model. */
 	*Kind_GridMovement,    /*!< \brief Kind of the unsteady mesh movement. */
 	Kind_Gradient_Method,		/*!< \brief Numerical method for computation of spatial gradients. */
+	Kind_Reconst_Gradient_Method,		/*!< \brief Numerical method for computation of spatial gradients. */
 	Kind_Linear_Solver,		/*!< \brief Numerical solver for the implicit scheme. */
 	Kind_Linear_Solver_Prec,		/*!< \brief Preconditioner of the linear solver. */
 	Kind_AdjTurb_Linear_Solver,		/*!< \brief Numerical solver for the turbulent adjoint implicit scheme. */
@@ -2494,7 +2495,7 @@ public:
 	 * \return Numerical method for computation of spatial gradients.
 	 */
 	unsigned short GetKind_Gradient_Method(void);
-
+	unsigned short GetKind_Reconst_Gradient_Method(void);
 	/*!
 	 * \brief Get the kind of solver for the implicit solver.
 	 * \return Numerical solver for implicit formulation (solving the linear system).

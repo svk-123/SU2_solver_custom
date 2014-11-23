@@ -1443,7 +1443,7 @@ public:
 	 * \return Value of the primitive variables gradient.
 	 */
 	virtual double GetGradient_Primitive(unsigned short val_var, unsigned short val_dim);
-
+    virtual double GetReconstGradient_Primitive(unsigned short val_var, unsigned short val_dim);
   /*!
 	 * \brief A virtual member.
 	 * \param[in] val_var - Index of the variable.
@@ -1459,7 +1459,7 @@ public:
 	 * \param[in] val_value - Value of the gradient.
 	 */
 	virtual void SetGradient_Primitive(unsigned short val_var, unsigned short val_dim, double val_value);
-
+	virtual void SetReconstGradient_Primitive(unsigned short val_var, unsigned short val_dim, double val_value);
   /*!
 	 * \brief A virtual member.
 	 * \param[in] val_var - Index of the variable.
@@ -1473,7 +1473,8 @@ public:
 	 * \return Value of the primitive variables gradient.
 	 */
 	virtual double **GetGradient_Primitive(void);
-  
+  	virtual double **GetReconstGradient_Primitive(void);
+
   /*!
 	 * \brief A virtual member.
 	 * \return Value of the primitive variables gradient.
@@ -1959,6 +1960,7 @@ protected:
   
 	double *Primitive;	/*!< \brief Primitive variables (T,vx,vy,vz,P,rho,h,c) in compressible flows. */
 	double **Gradient_Primitive;	/*!< \brief Gradient of the primitive variables (T,vx,vy,vz,P,rho). */ 
+	double **Reconst_Gradient_Primitive;
   double *Limiter_Primitive;    /*!< \brief Limiter of the primitive variables (T,vx,vy,vz,P,rho). */ 
 
   /*--- Secondary variable definition ---*/
@@ -2028,7 +2030,7 @@ public:
 	 * \return Value of the primitive variables gradient.
 	 */
 	double GetGradient_Primitive(unsigned short val_var, unsigned short val_dim);
-  
+  	double GetReconstGradient_Primitive(unsigned short val_var, unsigned short val_dim);
   /*!
 	 * \brief Get the value of the primitive variables gradient.
 	 * \param[in] val_var - Index of the variable.
@@ -2044,7 +2046,7 @@ public:
 	 * \param[in] val_value - Value of the gradient.
 	 */
 	void SetGradient_Primitive(unsigned short val_var, unsigned short val_dim, double val_value);
-
+	void SetReconstGradient_Primitive(unsigned short val_var, unsigned short val_dim, double val_value);
   /*!
 	 * \brief Set the gradient of the primitive variables.
 	 * \param[in] val_var - Index of the variable.
@@ -2058,7 +2060,7 @@ public:
 	 * \return Value of the primitive variables gradient.
 	 */
 	double **GetGradient_Primitive(void);
-  
+  	double **GetReconstGradient_Primitive(void);
   /*!
 	 * \brief Get the value of the primitive variables gradient.
 	 * \return Value of the primitive variables gradient.

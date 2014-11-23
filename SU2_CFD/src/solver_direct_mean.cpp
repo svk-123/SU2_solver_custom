@@ -2778,11 +2778,7 @@ void CEulerSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container
     	SetPrimitive_Gradient_LS(geometry, config);
     	if (compressible && !ideal_gas) SetSecondary_Gradient_LS(geometry, config);
     }
-    if (config->GetKind_Gradient_Method() == SDWLS){
-    	SetPrimitive_Gradient_SDWLS(geometry, config);
-    	if (compressible && !ideal_gas) SetSecondary_Gradient_SDWLS(geometry, config);
-    }
-    
+      
     /*--- Limiter computation ---*/
     
     if ((limiter) && (iMesh == MESH_0)){
@@ -2791,6 +2787,21 @@ void CEulerSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container
     }
     
   }
+    
+    if ((second_order && !center) && ((iMesh == MESH_0) || low_fidelity)) {
+		
+		if (config->GetKind_Reconst_Gradient_Method() == WLS){
+    	SetPrimitive_Reconst_Gradient_WLS(geometry, config);
+		}
+    
+		if (config->GetKind_Reconst_Gradient_Method() == SDWLS){
+    	SetPrimitive_Reconst_Gradient_SDWLS(geometry, config);
+		}
+		
+	}
+  
+  
+  
   
   /*--- Artificial dissipation ---*/
   
@@ -4488,7 +4499,225 @@ void CEulerSolver::SetPrimitive_Gradient_GG(CGeometry *geometry, CConfig *config
   
 }
 
-void CEulerSolver::SetPrimitive_Gradient_SDWLS(CGeometry *geometry, CConfig *config) {
+void CEulerSolver::SetPrimitive_Reconst_Gradient_WLS(CGeometry *geometry, CConfig *config) {
+  
+  unsigned short iVar, iDim, jDim, iNeigh , iMarker;
+  unsigned long iPoint, jPoint, iEdge, iVertex;
+  double *PrimVar_i, *PrimVar_j, *Coord_i, *Coord_j, r11, r12, r13, r22, r23, r23_a,
+  r23_b, r33, weight, product, z11, z12, z13, z22, z23, z33, detR2;
+  bool singular;
+
+  	int i,l,j,cell_adj,n,m,k,x,z;
+	
+	double **A,dx,dy,du,w,derivatives[nPrimVarGrad+1][nDim+1];
+	
+	double **w_A, *b,*u,**q,**r,*qb,del;
+	
+	m = 2; // column  size (nxm)
+	  
+	del = 0.000001;   
+	  
+  /*--- Loop over points of the grid ---*/
+  
+  for (iPoint = 0; iPoint < nPointDomain; iPoint++) {
+    
+      //Boundary   = config->GetMarker_All_KindBC(iPoint);
+
+    /*--- Set the value of the singular ---*/
+    singular = false;
+    
+    /*--- Get coordinates ---*/
+    
+    Coord_i = geometry->node[iPoint]->GetCoord();
+    
+    /*--- Get primitives from CVariable ---*/
+    
+    PrimVar_i = node[iPoint]->GetPrimitive();
+    
+    
+    n = geometry->node[iPoint]->GetnPoint(); // no of vertex neighbour
+    
+    /*--- Inizialization of variables ---*/
+    
+        w_A = (double **)malloc((n)*sizeof(double *));
+		
+		for(i=0;i<n;i++)
+		{
+			w_A[i] = (double *)malloc(m * sizeof(double));
+			
+		}
+		
+		A =(double **) malloc(n*sizeof(double *));
+		
+		for(i=0;i<n;i++)
+		{
+			A[i] = (double *)malloc(m * sizeof(double));
+		}
+		
+		q =(double **) malloc(n*sizeof(double *));
+		
+		for(i=0;i<n;i++)
+		{
+			q[i] = (double *)malloc(m * sizeof(double));
+		}
+		
+		r =(double **) malloc(m*sizeof(double *));
+		
+		for(i=0;i<m;i++)
+		{
+			r[i] = (double *)malloc(m * sizeof(double));
+		}
+		//************************************************************
+		//Allocate matrix b = n x 1
+		
+		
+		b = (double *)malloc(n*sizeof(double ));
+		
+		qb = (double *)malloc(m*sizeof(double ));
+		
+		
+		for(i = 0;i<n;i++)
+		{
+			
+		 iNeigh=i;
+         jPoint = geometry->node[iPoint]->GetPoint(iNeigh);
+         Coord_j = geometry->node[jPoint]->GetCoord();
+         
+                  
+            dx = Coord_j[0]-Coord_i[0];
+			
+			dy = Coord_j[1]-Coord_i[1];
+                  
+			A[i][0] = dx;
+			A[i][1] = dy;
+
+		}
+		
+		for(z=0;z<nPrimVarGrad;z++)
+		{ 
+			for(i=0;i<n;i++)
+			{
+				iNeigh=i;
+				jPoint = geometry->node[iPoint]->GetPoint(iNeigh);
+				PrimVar_j = node[jPoint]->GetPrimitive();
+				
+				du = PrimVar_j[z]-PrimVar_i[z];
+								
+				w=1.0;
+				w_A[i][0] = w * A[i][0];
+				w_A[i][1] = w * A[i][1];
+				
+				b[i] = w * du;
+			}
+			
+			//GS orthogolization
+			for(i = 0;i<m;i++)
+			{
+				for(j=0;j<n;j++)
+				{
+					q[j][i] = w_A[j][i];
+				}
+				
+				for(j=0;j<=i-1;j++)
+				{
+					r[j][i] = 0;
+					
+					for(k=0;k<n;k++)
+					{
+						r[j][i] = r[j][i] + q[k][i]*q[k][j];
+					}
+					for(k=0;k<n;k++)
+					{
+						q[k][i] = q[k][i] - r[j][i] * q[k][j];
+					}
+					
+				}
+				
+				r[i][i] = 0;
+				
+				
+				
+				for(k=0;k<n;k++)
+				{
+					r[i][i] = r[i][i] + q[k][i]*q[k][i];
+				}
+				
+				r[i][i] = sqrt(r[i][i]);
+				
+				for(k=0;k<n;k++)
+				{
+					q[k][i] = q[k][i]/r[i][i];
+				}
+				
+			}
+			
+			for(j=0;j<m;j++)
+			{
+				
+				qb[j]=0;
+				for(i=0;i<n;i++)
+				{
+					qb[j] = qb[j] + q[i][j]* b[i];
+				}
+			}
+			
+			for(j=m-1;j>=0;j--)
+			{
+				for(i=m-1;i>=j+1;i--)
+				{
+					qb[j] = qb[j] - r[j][i] * derivatives[z][i];
+				}
+				derivatives[z][j] = qb[j]/r[j][j];
+				
+			}
+			
+			
+		}
+			
+		
+		for(i=0;i<n;i++)
+		{
+			free(w_A[i]);
+			free(A[i]);
+			free(q[i]);
+		}
+		free(w_A);
+		free(A);
+		free(b);
+		free(q);
+	
+		
+		for(i=0;i<m;i++)
+		{
+			free(r[i]);
+		}
+		free(r);
+		free(qb);
+		
+        
+        /*--- Computation of the gradient: S*c ---*/
+    for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
+      for (iDim = 0; iDim < nDim; iDim++) {
+		  
+          product = derivatives[iVar][iDim];
+           
+          node[iPoint]->SetReconstGradient_Primitive(iVar, iDim, product);
+          
+      }
+    }
+    
+                
+
+  }
+  
+
+  
+  //Set_MPI_Primitive_Gradient(geometry, config);
+  
+}
+
+
+void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CConfig *config) {
   
   unsigned short iVar, iDim, jDim, iNeigh , iMarker;
   unsigned long iPoint, jPoint, iEdge, iVertex;
@@ -4698,7 +4927,7 @@ void CEulerSolver::SetPrimitive_Gradient_SDWLS(CGeometry *geometry, CConfig *con
 		  
           product = derivatives[iVar][iDim];
            
-          node[iPoint]->SetGradient_Primitive(iVar, iDim, product);
+          node[iPoint]->SetReconstGradient_Primitive(iVar, iDim, product);
           
       }
     }
@@ -4708,7 +4937,7 @@ void CEulerSolver::SetPrimitive_Gradient_SDWLS(CGeometry *geometry, CConfig *con
   }
   
       /*--- Loop boundary edges ---*/
-  for (iMarker = 0; iMarker < geometry->GetnMarker(); iMarker++) {
+ /* for (iMarker = 0; iMarker < geometry->GetnMarker(); iMarker++) {
     for (iVertex = 0; iVertex < geometry->GetnVertex(iMarker); iVertex++) {
       iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
        
@@ -4729,11 +4958,12 @@ void CEulerSolver::SetPrimitive_Gradient_SDWLS(CGeometry *geometry, CConfig *con
           
       }
     }
-  }
+  }*/
   
-  Set_MPI_Primitive_Gradient(geometry, config);
+  //Set_MPI_Primitive_Gradient(geometry, config);
   
 }
+
 
 void CEulerSolver::SetPrimitive_Gradient_LS(CGeometry *geometry, CConfig *config) {
   
@@ -5116,141 +5346,6 @@ void CEulerSolver::SetSecondary_Gradient_GG(CGeometry *geometry, CConfig *config
 }
 
 void CEulerSolver::SetSecondary_Gradient_LS(CGeometry *geometry, CConfig *config) {
-  
-  unsigned short iVar, iDim, jDim, iNeigh;
-  unsigned long iPoint, jPoint;
-  double *SecondaryVar_i, *SecondaryVar_j, *Coord_i, *Coord_j, r11, r12, r13, r22, r23, r23_a,
-  r23_b, r33, weight, product, z11, z12, z13, z22, z23, z33, detR2;
-  bool singular;
-  
-  /*--- Loop over points of the grid ---*/
-  
-  for (iPoint = 0; iPoint < nPointDomain; iPoint++) {
-    
-    /*--- Set the value of the singular ---*/
-    singular = false;
-    
-    /*--- Get coordinates ---*/
-    
-    Coord_i = geometry->node[iPoint]->GetCoord();
-    
-    /*--- Get Secondarys from CVariable ---*/
-    
-    SecondaryVar_i = node[iPoint]->GetSecondary();
-    
-    /*--- Inizialization of variables ---*/
-    
-    for (iVar = 0; iVar < nSecondaryVarGrad; iVar++)
-      for (iDim = 0; iDim < nDim; iDim++)
-        cvector[iVar][iDim] = 0.0;
-    
-    r11 = 0.0; r12 = 0.0;   r13 = 0.0;    r22 = 0.0;
-    r23 = 0.0; r23_a = 0.0; r23_b = 0.0;  r33 = 0.0; detR2 = 0.0;
-    
-    for (iNeigh = 0; iNeigh < geometry->node[iPoint]->GetnPoint(); iNeigh++) {
-      jPoint = geometry->node[iPoint]->GetPoint(iNeigh);
-      Coord_j = geometry->node[jPoint]->GetCoord();
-      
-      SecondaryVar_j = node[jPoint]->GetSecondary();
-      
-      weight = 0.0;
-      for (iDim = 0; iDim < nDim; iDim++)
-        weight += (Coord_j[iDim]-Coord_i[iDim])*(Coord_j[iDim]-Coord_i[iDim]);
-      
-      /*--- Sumations for entries of upper triangular matrix R ---*/
-      
-      if (weight != 0.0) {
-        
-        r11 += (Coord_j[0]-Coord_i[0])*(Coord_j[0]-Coord_i[0])/weight;
-        r12 += (Coord_j[0]-Coord_i[0])*(Coord_j[1]-Coord_i[1])/weight;
-        r22 += (Coord_j[1]-Coord_i[1])*(Coord_j[1]-Coord_i[1])/weight;
-        
-        if (nDim == 3) {
-          r13 += (Coord_j[0]-Coord_i[0])*(Coord_j[2]-Coord_i[2])/weight;
-          r23_a += (Coord_j[1]-Coord_i[1])*(Coord_j[2]-Coord_i[2])/weight;
-          r23_b += (Coord_j[0]-Coord_i[0])*(Coord_j[2]-Coord_i[2])/weight;
-          r33 += (Coord_j[2]-Coord_i[2])*(Coord_j[2]-Coord_i[2])/weight;
-        }
-        
-        /*--- Entries of c:= transpose(A)*b ---*/
-        
-        for (iVar = 0; iVar < nSecondaryVarGrad; iVar++)
-          for (iDim = 0; iDim < nDim; iDim++)
-            cvector[iVar][iDim] += (Coord_j[iDim]-Coord_i[iDim])*(SecondaryVar_j[iVar]-SecondaryVar_i[iVar])/weight;
-        
-      }
-      
-    }
-    
-    /*--- Entries of upper triangular matrix R ---*/
-    
-    if (r11 >= 0.0) r11 = sqrt(r11); else r11 = 0.0;
-    if (r11 != 0.0) r12 = r12/r11; else r12 = 0.0;
-    if (r22-r12*r12 >= 0.0) r22 = sqrt(r22-r12*r12); else r22 = 0.0;
-    
-    if (nDim == 3) {
-      if (r11 != 0.0) r13 = r13/r11; else r13 = 0.0;
-      if ((r22 != 0.0) && (r11*r22 != 0.0)) r23 = r23_a/r22 - r23_b*r12/(r11*r22); else r23 = 0.0;
-      if (r33-r23*r23-r13*r13 >= 0.0) r33 = sqrt(r33-r23*r23-r13*r13); else r33 = 0.0;
-    }
-    
-    /*--- Compute determinant ---*/
-    
-    if (nDim == 2) detR2 = (r11*r22)*(r11*r22);
-    else detR2 = (r11*r22*r33)*(r11*r22*r33);
-    
-    /*--- Detect singular matrices ---*/
-    
-    if (abs(detR2) <= EPS) { detR2 = 1.0; singular = true; }
-    
-    /*--- S matrix := inv(R)*traspose(inv(R)) ---*/
-    
-    if (singular) {
-      for (iDim = 0; iDim < nDim; iDim++)
-        for (jDim = 0; jDim < nDim; jDim++)
-          Smatrix[iDim][jDim] = 0.0;
-    }
-    else {
-      if (nDim == 2) {
-        Smatrix[0][0] = (r12*r12+r22*r22)/detR2;
-        Smatrix[0][1] = -r11*r12/detR2;
-        Smatrix[1][0] = Smatrix[0][1];
-        Smatrix[1][1] = r11*r11/detR2;
-      }
-      else {
-        z11 = r22*r33; z12 = -r12*r33; z13 = r12*r23-r13*r22;
-        z22 = r11*r33; z23 = -r11*r23; z33 = r11*r22;
-        Smatrix[0][0] = (z11*z11+z12*z12+z13*z13)/detR2;
-        Smatrix[0][1] = (z12*z22+z13*z23)/detR2;
-        Smatrix[0][2] = (z13*z33)/detR2;
-        Smatrix[1][0] = Smatrix[0][1];
-        Smatrix[1][1] = (z22*z22+z23*z23)/detR2;
-        Smatrix[1][2] = (z23*z33)/detR2;
-        Smatrix[2][0] = Smatrix[0][2];
-        Smatrix[2][1] = Smatrix[1][2];
-        Smatrix[2][2] = (z33*z33)/detR2;
-      }
-    }
-    
-    /*--- Computation of the gradient: S*c ---*/
-    for (iVar = 0; iVar < nSecondaryVarGrad; iVar++) {
-      for (iDim = 0; iDim < nDim; iDim++) {
-        product = 0.0;
-        for (jDim = 0; jDim < nDim; jDim++) {
-          product += Smatrix[iDim][jDim]*cvector[iVar][jDim];
-        }
-        
-        node[iPoint]->SetGradient_Secondary(iVar, iDim, product);
-      }
-    }
-    
-  }
-  
-  Set_MPI_Secondary_Gradient(geometry, config);
-  
-}
-
-void CEulerSolver::SetSecondary_Gradient_SDWLS(CGeometry *geometry, CConfig *config) {
   
   unsigned short iVar, iDim, jDim, iNeigh;
   unsigned long iPoint, jPoint;
@@ -9928,7 +10023,7 @@ void CNSSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container, C
   bool fixed_cl             = config->GetFixed_CL_Mode();
   bool engine               = ((config->GetnMarker_NacelleInflow() != 0) || (config->GetnMarker_NacelleExhaust() != 0));
   bool ideal_gas = (config->GetKind_FluidModel() == STANDARD_AIR || config->GetKind_FluidModel() == IDEAL_GAS );
-
+  bool second_order     = (config->GetSpatialOrder_Flow() == SECOND_ORDER);
   /*--- Compute nacelle inflow and exhaust properties ---*/
   
   if (engine) GetNacelle_Properties(geometry, config, iMesh, Output);
@@ -9988,10 +10083,19 @@ void CNSSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container, C
 	  if (compressible && !ideal_gas) SetSecondary_Gradient_LS(geometry, config);
   }
   
-    if (config->GetKind_Gradient_Method() == SDWLS){
-	  SetPrimitive_Gradient_SDWLS(geometry, config);
-	  if (compressible && !ideal_gas) SetSecondary_Gradient_SDWLS(geometry, config);
-  }
+  if (second_order && !center) {
+	  
+	if (config->GetKind_Reconst_Gradient_Method() == SDWLS){
+	  SetPrimitive_Reconst_Gradient_SDWLS(geometry, config);
+
+	}
+  
+	if (config->GetKind_Reconst_Gradient_Method() == WLS){
+	  SetPrimitive_Reconst_Gradient_WLS(geometry, config);
+
+	}
+  
+ }
   
   /*--- Compute the limiter in case we need it in the turbulence model
    or to limit the viscous terms (check this logic with JST and 2nd order turbulence model) ---*/

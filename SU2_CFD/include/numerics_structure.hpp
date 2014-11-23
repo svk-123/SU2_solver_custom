@@ -154,6 +154,8 @@ public:
 	**ConsVar_Grad;				/*!< \brief Gradient of conservative variables which is a scalar. */
 	double **PrimVar_Grad_i,	/*!< \brief Gradient of primitive variables at point i. */
 	**PrimVar_Grad_j;			/*!< \brief Gradient of primitive variables at point j. */
+	double **PrimVar_Reconst_Grad_i,	/*!< \brief Gradient of primitive variables at point i. */
+	**PrimVar_Reconst_Grad_j;			/*!< \brief Gradient of primitive variables at point j. */
 	double **PsiVar_Grad_i,		/*!< \brief Gradient of adjoint variables at point i. */
 	**PsiVar_Grad_j;			/*!< \brief Gradient of adjoint variables at point j. */
 	double **TurbVar_Grad_i,	/*!< \brief Gradient of turbulent variables at point i. */
@@ -366,7 +368,8 @@ public:
 	 */
 	void SetPrimVarGradient(double **val_primvar_grad_i,
                           double **val_primvar_grad_j);
-    
+                          
+
 	/*!
 	 * \brief Set the value of the adjoint variable.
 	 * \param[in] val_psi_i - Value of the adjoint variable at point i.

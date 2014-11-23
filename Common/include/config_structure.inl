@@ -548,6 +548,8 @@ inline double CConfig::GetEnthalpy_Formation(unsigned short iSpecies) { return E
 
 inline unsigned short CConfig::GetKind_Gradient_Method(void) { return Kind_Gradient_Method; }
 
+inline unsigned short CConfig::GetKind_Reconst_Gradient_Method(void) { return Kind_Reconst_Gradient_Method; }
+
 inline unsigned short CConfig::GetKind_Linear_Solver(void) { return Kind_Linear_Solver; }
 
 inline unsigned short CConfig::GetKind_Linear_Solver_Prec(void) { return Kind_Linear_Solver_Prec; }
