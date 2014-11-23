@@ -3140,8 +3140,8 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
         Vector_j[iDim] = 0.5*(geometry->node[iPoint]->GetCoord(iDim) - geometry->node[jPoint]->GetCoord(iDim));
       }
       
-      Gradient_i = node[iPoint]->GetGradient_Primitive();
-      Gradient_j = node[jPoint]->GetGradient_Primitive();
+      Gradient_i = node[iPoint]->GetReconstGradient_Primitive();
+      Gradient_j = node[jPoint]->GetReconstGradient_Primitive();
       if (limiter) {
     	  Limiter_i = node[iPoint]->GetLimiter_Primitive();
         Limiter_j = node[jPoint]->GetLimiter_Primitive();
