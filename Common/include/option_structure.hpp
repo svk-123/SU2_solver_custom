@@ -654,7 +654,8 @@ enum BC_TYPE {
   ACTDISK_INLET = 35,	/*!< \brief Actuator disk inlet boundary definition. */
   ACTDISK_OUTLET = 36,	/*!< \brief Actuator disk outlet boundary definition. */
   SEND_RECEIVE = 99,		/*!< \brief Boundary send-receive definition. */
-  RIEMANN_BOUNDARY= 100   /*!< \brief Riemann Boundary definition. */
+  RIEMANN_BOUNDARY= 100,   /*!< \brief Riemann Boundary definition. */
+  XWALL = 101
 };
 
 /*!

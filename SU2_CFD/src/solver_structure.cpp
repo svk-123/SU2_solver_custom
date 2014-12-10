@@ -826,6 +826,7 @@ void CSolver::SetAuxVar_Surface_Gradient(CGeometry *geometry, CConfig *config) {
     switch (Boundary) {
       case EULER_WALL:
       case HEAT_FLUX:
+      case XWALL:
       case HEAT_FLUX_CATALYTIC:
       case HEAT_FLUX_NONCATALYTIC:
       case ISOTHERMAL:

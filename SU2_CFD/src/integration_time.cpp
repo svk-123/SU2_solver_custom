@@ -259,6 +259,7 @@ void CMultiGridIntegration::GetProlongated_Correction(unsigned short RunTime_EqS
   for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
     Boundary = config->GetMarker_All_KindBC(iMarker);
     if ((Boundary == HEAT_FLUX             ) ||
+	(Boundary == XWALL                 ) ||
         (Boundary == HEAT_FLUX_CATALYTIC   ) ||
         (Boundary == HEAT_FLUX_NONCATALYTIC) ||
         (Boundary == ISOTHERMAL            ) ||
@@ -478,6 +479,7 @@ void CMultiGridIntegration::SetForcing_Term(CSolver *sol_fine, CSolver *sol_coar
   
   for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
     if ((config->GetMarker_All_KindBC(iMarker) == HEAT_FLUX              ) ||
+    (config->GetMarker_All_KindBC(iMarker) == XWALL             ) ||
         (config->GetMarker_All_KindBC(iMarker) == HEAT_FLUX_CATALYTIC    ) ||
         (config->GetMarker_All_KindBC(iMarker) == HEAT_FLUX_NONCATALYTIC ) ||
         (config->GetMarker_All_KindBC(iMarker) == ISOTHERMAL             ) ||
@@ -529,6 +531,7 @@ void CMultiGridIntegration::SetRestricted_Residual(CSolver *sol_fine, CSolver *s
   
   for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
     if ((config->GetMarker_All_KindBC(iMarker) == HEAT_FLUX              ) ||
+    (config->GetMarker_All_KindBC(iMarker) == XWALL              ) ||
         (config->GetMarker_All_KindBC(iMarker) == HEAT_FLUX_CATALYTIC    ) ||
         (config->GetMarker_All_KindBC(iMarker) == HEAT_FLUX_NONCATALYTIC ) ||
         (config->GetMarker_All_KindBC(iMarker) == ISOTHERMAL             ) ||
@@ -579,6 +582,7 @@ void CMultiGridIntegration::SetRestricted_Solution(unsigned short RunTime_EqSyst
   /*--- Update the solution at the no-slip walls ---*/
   for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
     if ((config->GetMarker_All_KindBC(iMarker) == HEAT_FLUX              ) ||
+    (config->GetMarker_All_KindBC(iMarker) == XWALL             ) ||
         (config->GetMarker_All_KindBC(iMarker) == HEAT_FLUX_CATALYTIC    ) ||
         (config->GetMarker_All_KindBC(iMarker) == HEAT_FLUX_NONCATALYTIC ) ||
         (config->GetMarker_All_KindBC(iMarker) == ISOTHERMAL             ) ||
@@ -895,6 +899,7 @@ void CSingleGridIntegration::SetRestricted_Solution(unsigned short RunTime_EqSys
   if (RunTime_EqSystem == RUNTIME_TURB_SYS) {
     for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
       if ((config->GetMarker_All_KindBC(iMarker) == HEAT_FLUX              ) ||
+      (config->GetMarker_All_KindBC(iMarker) == XWALL             ) ||
           (config->GetMarker_All_KindBC(iMarker) == HEAT_FLUX_CATALYTIC    ) ||
           (config->GetMarker_All_KindBC(iMarker) == HEAT_FLUX_NONCATALYTIC ) ||
           (config->GetMarker_All_KindBC(iMarker) == ISOTHERMAL             ) ||

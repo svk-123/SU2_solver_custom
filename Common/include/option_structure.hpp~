@@ -579,13 +579,26 @@ static const map<string, ENUM_TIME_INT> Time_Int_Map = CCreateMap<string, ENUM_T
  */
 enum ENUM_FLOW_GRADIENT {
   GREEN_GAUSS = 1,		/*!< \brief Gradients computation using Green Gauss theorem. */
-  WEIGHTED_LEAST_SQUARES = 2,	/*!< \brief Gradients computation using Weighted Least Squares. */
-  SDWLS = 3
+  WEIGHTED_LEAST_SQUARES = 2	/*!< \brief Gradients computation using Weighted Least Squares. */
+
 };
 static const map<string, ENUM_FLOW_GRADIENT> Gradient_Map = CCreateMap<string, ENUM_FLOW_GRADIENT>
 ("GREEN_GAUSS", GREEN_GAUSS)
-("WEIGHTED_LEAST_SQUARES", WEIGHTED_LEAST_SQUARES)
-("SDWLS",SDWLS);
+("WEIGHTED_LEAST_SQUARES", WEIGHTED_LEAST_SQUARES);
+
+/*!
+ * \brief types of schemes to compute the flow gradient
+ */
+enum ENUM_RECONST_GRADIENT {
+  NO_SDWLS = 1,	
+  WLS = 2,		/*!< \brief Gradients computation using Green Gauss theorem. */
+  SDWLS = 3	/*!< \brief Gradients computation using Weighted Least Squares. */
+
+};
+static const map<string, ENUM_RECONST_GRADIENT> Reconst_Gradient_Map = CCreateMap<string, ENUM_RECONST_GRADIENT>
+("NONE", NO_SDWLS)
+("WLS", WLS)
+("SDWLS", SDWLS);
 
 /*!
  * \brief types of action to take on a geometry structure
@@ -641,7 +654,8 @@ enum BC_TYPE {
   ACTDISK_INLET = 35,	/*!< \brief Actuator disk inlet boundary definition. */
   ACTDISK_OUTLET = 36,	/*!< \brief Actuator disk outlet boundary definition. */
   SEND_RECEIVE = 99,		/*!< \brief Boundary send-receive definition. */
-  RIEMANN_BOUNDARY= 100   /*!< \brief Riemann Boundary definition. */
+  RIEMANN_BOUNDARY= 100,   /*!< \brief Riemann Boundary definition. */
+  XWALL = 101
 };
 
 /*!

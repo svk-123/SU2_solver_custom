@@ -143,6 +143,7 @@ private:
   nMarker_IsothermalNonCatalytic, /*!< \brief Number of constant temperature wall boundaries. */
   nMarker_IsothermalCatalytic, /*!< \brief Number of constant temperature wall boundaries. */
 	nMarker_HeatFlux,       /*!< \brief Number of constant heat flux wall boundaries. */
+	nMarker_Xwall,
   nMarker_HeatFluxNonCatalytic, /*!< \brief Number of constant heat flux wall boundaries. */
   nMarker_HeatFluxCatalytic, /*!< \brief Number of constant heat flux wall boundaries. */
 	nMarker_NacelleExhaust,					/*!< \brief Number of nacelle exhaust flow markers. */
@@ -178,6 +179,7 @@ private:
   *Marker_IsothermalNonCatalytic,     /*!< \brief Isothermal wall markers. */
   *Marker_IsothermalCatalytic,     /*!< \brief Isothermal wall markers. */
 	*Marker_HeatFlux,       /*!< \brief Constant heat flux wall markers. */
+	*Marker_Xwall,
   *Marker_HeatFluxNonCatalytic,       /*!< \brief Constant heat flux wall markers. */
   *Marker_HeatFluxCatalytic,       /*!< \brief Constant heat flux wall markers. */
 	*Marker_NacelleInflow,					/*!< \brief Nacelle Inflow flow markers. */
