@@ -135,6 +135,8 @@ private:
 	nMarker_Dirichlet,				/*!< \brief Number of interface boundary markers. */
 	nMarker_Dirichlet_Elec,				/*!< \brief Number of interface boundary markers. */
 	nMarker_Inlet,					/*!< \brief Number of inlet flow markers. */
+	nMarker_Xinlet,
+	nMarker_Xoutlet,
 	nMarker_Riemann,					/*!< \brief Number of Riemann flow markers. */
 	nMarker_Supersonic_Inlet,					/*!< \brief Number of supersonic inlet flow markers. */
 	nMarker_Outlet,					/*!< \brief Number of outlet flow markers. */
@@ -171,6 +173,8 @@ private:
 	*Marker_Dirichlet,				/*!< \brief Interface boundaries markers. */
 	*Marker_Dirichlet_Elec,				/*!< \brief Interface boundaries markers. */
 	*Marker_Inlet,					/*!< \brief Inlet flow markers. */
+	*Marker_Xinlet,
+	*Marker_Xoutlet,
 	*Marker_Riemann,					/*!< \brief Riemann markers. */
 	*Marker_Supersonic_Inlet,					/*!< \brief Supersonic inlet flow markers. */
 	*Marker_Outlet,					/*!< \brief Outlet flow markers. */

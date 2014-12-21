@@ -83,7 +83,7 @@ void CConfig::SetPointersNull(void){
   Marker_Euler=NULL;          Marker_FarField=NULL;         Marker_Custom=NULL;
   Marker_SymWall=NULL;        Marker_Pressure=NULL;         Marker_PerBound=NULL;
   Marker_PerDonor=NULL;       Marker_NearFieldBound=NULL;   Marker_InterfaceBound=NULL;
-  Marker_Dirichlet=NULL;      Marker_Dirichlet_Elec=NULL;   Marker_Inlet=NULL;
+  Marker_Dirichlet=NULL;      Marker_Dirichlet_Elec=NULL;   Marker_Inlet=NULL; Marker_Xinlet=NULL; Marker_Xoutlet=NULL;
   Marker_Supersonic_Inlet=NULL;    Marker_Outlet=NULL;      Marker_Out_1D=NULL;
   Marker_Isothermal=NULL;     Marker_HeatFlux=NULL;         Marker_NacelleInflow=NULL; Marker_Xwall = NULL;
   Marker_IsothermalCatalytic=NULL; Marker_IsothermalNonCatalytic=NULL;
@@ -385,6 +385,8 @@ void CConfig::SetConfig_Options(unsigned short val_iZone, unsigned short val_nZo
    flow_direction_y, flow_direction_z, ... ) where flow_direction is
    a unit vector. */
   addInletOption("MARKER_INLET", nMarker_Inlet, Marker_Inlet, Inlet_Ttotal, Inlet_Ptotal, Inlet_FlowDir);
+  addInletOption("MARKER_XINLET", nMarker_Xinlet, Marker_Xinlet, Inlet_Ttotal, Inlet_Ptotal, Inlet_FlowDir);
+  addStringDoubleListOption("MARKER_XOUTLET", nMarker_Xoutlet, Marker_Xoutlet, Outlet_Pressure);
 
   /* DESCRIPTION: Riemann boundary marker(s) with the following formats, a unit vector. */
   addRiemannOption("MARKER_RIEMANN", nMarker_Riemann, Marker_Riemann, Kind_Data_Riemann, Riemann_Map, Riemann_Var1, Riemann_Var2, Riemann_FlowDir);
@@ -2697,7 +2699,7 @@ void CConfig::SetMarkers(unsigned short val_software, unsigned short val_izone) 
   nMarker_All = nMarker_Euler + nMarker_FarField + nMarker_SymWall +
   nMarker_PerBound + nMarker_NearFieldBound + nMarker_Supersonic_Inlet +
   nMarker_InterfaceBound + nMarker_Dirichlet + nMarker_Neumann + nMarker_Riemann+ nMarker_Inlet +
-  nMarker_Outlet + nMarker_Isothermal + nMarker_IsothermalCatalytic +
+  nMarker_Outlet + nMarker_Isothermal + nMarker_IsothermalCatalytic + nMarker_Xinlet + nMarker_Xoutlet +
   nMarker_IsothermalNonCatalytic + nMarker_HeatFlux + nMarker_HeatFluxCatalytic + nMarker_Xwall +
   nMarker_HeatFluxNonCatalytic + nMarker_NacelleInflow + nMarker_NacelleExhaust +
   nMarker_Dirichlet_Elec + nMarker_Displacement + nMarker_Load +
@@ -2718,7 +2720,7 @@ void CConfig::SetMarkers(unsigned short val_software, unsigned short val_izone) 
 
   unsigned short iMarker_All, iMarker_Config, iMarker_Euler, iMarker_Custom,
   iMarker_FarField, iMarker_SymWall, iMarker_Pressure, iMarker_PerBound,
-  iMarker_NearFieldBound, iMarker_InterfaceBound, iMarker_Dirichlet,
+  iMarker_NearFieldBound, iMarker_InterfaceBound, iMarker_Dirichlet, iMarker_Xinlet, iMarker_Xoutlet,
   iMarker_Inlet, iMarker_Riemann, iMarker_Outlet, iMarker_Isothermal, iMarker_IsothermalCatalytic,
   iMarker_IsothermalNonCatalytic, iMarker_HeatFlux, iMarker_HeatFluxNoncatalytic, iMarker_Xwall,
   iMarker_HeatFluxCatalytic, iMarker_NacelleInflow, iMarker_NacelleExhaust,
@@ -2744,7 +2746,7 @@ void CConfig::SetMarkers(unsigned short val_software, unsigned short val_izone) 
   nMarker_Config = nMarker_Euler + nMarker_FarField + nMarker_SymWall +
   nMarker_Pressure + nMarker_PerBound + nMarker_NearFieldBound +
   nMarker_InterfaceBound + nMarker_Dirichlet + nMarker_Neumann + nMarker_Inlet + nMarker_Riemann +
-  nMarker_Outlet + nMarker_Isothermal + nMarker_IsothermalNonCatalytic +
+  nMarker_Outlet + nMarker_Isothermal + nMarker_IsothermalNonCatalytic + nMarker_Xinlet + nMarker_Xoutlet + 
   nMarker_IsothermalCatalytic + nMarker_HeatFlux + nMarker_HeatFluxNonCatalytic + nMarker_Xwall +
   nMarker_HeatFluxCatalytic + nMarker_NacelleInflow + nMarker_NacelleExhaust +
   nMarker_Supersonic_Inlet + nMarker_Displacement + nMarker_Load +
@@ -2840,6 +2842,18 @@ void CConfig::SetMarkers(unsigned short val_software, unsigned short val_izone) 
   for (iMarker_Inlet = 0; iMarker_Inlet < nMarker_Inlet; iMarker_Inlet++) {
     Marker_CfgFile_TagBound[iMarker_Config] = Marker_Inlet[iMarker_Inlet];
     Marker_CfgFile_KindBC[iMarker_Config] = INLET_FLOW;
+    iMarker_Config++;
+  }
+  
+    for (iMarker_Xinlet = 0; iMarker_Xinlet < nMarker_Xinlet; iMarker_Xinlet++) {
+    Marker_CfgFile_TagBound[iMarker_Config] = Marker_Xinlet[iMarker_Xinlet];
+    Marker_CfgFile_KindBC[iMarker_Config] = XINLET;
+    iMarker_Config++;
+  }
+  
+    for (iMarker_Xoutlet = 0; iMarker_Xoutlet < nMarker_Xoutlet; iMarker_Xoutlet++) {
+    Marker_CfgFile_TagBound[iMarker_Config] = Marker_Xoutlet[iMarker_Xoutlet];
+    Marker_CfgFile_KindBC[iMarker_Config] = XOUTLET;
     iMarker_Config++;
   }
 
@@ -3006,7 +3020,7 @@ void CConfig::SetOutput(unsigned short val_software, unsigned short val_izone) {
 
   unsigned short iMarker_Euler, iMarker_Custom, iMarker_FarField,
   iMarker_SymWall, iMarker_PerBound, iMarker_Pressure, iMarker_NearFieldBound,
-  iMarker_InterfaceBound, iMarker_Dirichlet, iMarker_Inlet, iMarker_Outlet,
+  iMarker_InterfaceBound, iMarker_Dirichlet, iMarker_Inlet, iMarker_Outlet, iMarker_Xinlet, iMarker_Xoutlet,
   iMarker_Isothermal, iMarker_IsothermalNonCatalytic, iMarker_IsothermalCatalytic,
   iMarker_HeatFlux, iMarker_HeatFluxNonCatalytic, iMarker_HeatFluxCatalytic, iMarker_Xwall,
   iMarker_NacelleInflow, iMarker_NacelleExhaust, iMarker_Displacement,
@@ -4185,6 +4199,25 @@ void CConfig::SetOutput(unsigned short val_software, unsigned short val_izone) {
     }
   }
 
+  if (nMarker_Xinlet != 0) {
+    cout << "XInlet boundary marker(s): ";
+    for (iMarker_Xinlet = 0; iMarker_Xinlet < nMarker_Xinlet; iMarker_Xinlet++) {
+      cout << Marker_Xinlet[iMarker_Xinlet];
+      if (iMarker_Xinlet < nMarker_Xinlet-1) cout << ", ";
+      else cout <<"."<<endl;
+    }
+  }
+  
+    if (nMarker_Xoutlet != 0) {
+    cout << "Xoutlet boundary marker(s): ";
+    for (iMarker_Xoutlet = 0; iMarker_Xoutlet < nMarker_Xoutlet; iMarker_Xoutlet++) {
+      cout << Marker_Xoutlet[iMarker_Xoutlet];
+      if (iMarker_Xoutlet < nMarker_Xoutlet-1) cout << ", ";
+      else cout <<"."<<endl;
+    }
+  }
+  
+
   if (nMarker_NacelleInflow != 0) {
     cout << "Nacelle inflow boundary marker(s): ";
     for (iMarker_NacelleInflow = 0; iMarker_NacelleInflow < nMarker_NacelleInflow; iMarker_NacelleInflow++) {
@@ -4933,6 +4966,8 @@ CConfig::~CConfig(void)
   if (Marker_Dirichlet!=NULL )          delete[] Marker_Dirichlet;
   if (Marker_Dirichlet_Elec!=NULL )     delete[] Marker_Dirichlet_Elec;
   if (Marker_Inlet!=NULL )              delete[] Marker_Inlet;
+  if (Marker_Xinlet!=NULL )              delete[] Marker_Xinlet;
+  if (Marker_Xoutlet!=NULL )              delete[] Marker_Xoutlet;
   if (Marker_Supersonic_Inlet!=NULL )   delete[] Marker_Supersonic_Inlet;
   if (Marker_Outlet!=NULL )             delete[] Marker_Outlet;
   if (Marker_Out_1D!=NULL )             delete[] Marker_Out_1D;

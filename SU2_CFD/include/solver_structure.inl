@@ -399,6 +399,12 @@ inline void CSolver::BC_Riemann(CGeometry *geometry, CSolver **solver_container,
 										 
 inline void CSolver::BC_Inlet(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics, CNumerics *visc_numerics, 
 										 CConfig *config, unsigned short val_marker) { }
+
+inline void CSolver::BC_Xinlet(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics, CNumerics *visc_numerics, 
+										 CConfig *config, unsigned short val_marker) { }
+
+inline void CSolver::BC_Xoutlet(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics, CNumerics *visc_numerics, 
+										 CConfig *config, unsigned short val_marker) { }
                      
 inline void CSolver::BC_Outlet(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics, CNumerics *visc_numerics, 
 										  CConfig *config, unsigned short val_marker) { }

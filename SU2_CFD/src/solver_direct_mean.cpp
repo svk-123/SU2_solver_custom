@@ -3113,8 +3113,8 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
     iPoint = geometry->edge[iEdge]->GetNode(0); jPoint = geometry->edge[iEdge]->GetNode(1);
     numerics->SetNormal(geometry->edge[iEdge]->GetNormal());
     
-    bool boundary_i = geometry->node[iPoint]->GetPhysicalBoundary();
-    bool boundary_j = geometry->node[jPoint]->GetPhysicalBoundary();
+    bool boundary_i = geometry->node[iPoint]->GetBoundary() || geometry->node[iPoint]->GetSolidBoundary() || geometry->node[iPoint]->GetPhysicalBoundary();
+    bool boundary_j = geometry->node[jPoint]->GetBoundary() || geometry->node[iPoint]->GetSolidBoundary() || geometry->node[iPoint]->GetPhysicalBoundary();
     
     
     
@@ -3171,16 +3171,18 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
          Primitive_i[iVar] = V_i[iVar] + Limiter_i[iVar]*Project_Grad_i;
          Primitive_j[iVar] = V_j[iVar] + Limiter_j[iVar]*Project_Grad_j;
       }
-      else {
+      else  {
           Primitive_i[iVar] = V_i[iVar] + Project_Grad_i;
           Primitive_j[iVar] = V_j[iVar] + Project_Grad_j;
         }
         
-      if ((boundary_i && boundary_j) || (!boundary_i && boundary_j) || (boundary_i && !boundary_j))   {
+      if ((boundary_i || boundary_j)&& sdwls) {
+		  
 		  Primitive_i[iVar] = V_i[iVar];
           Primitive_j[iVar] = V_j[iVar];
 	   }
-        
+	   
+       
         
       }
       
@@ -4774,6 +4776,7 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
     
     n = geometry->node[iPoint]->GetnPoint(); // no of vertex neighbour
     
+     
     /*--- Inizialization of variables ---*/
     
         w_A = (double **)malloc((n)*sizeof(double *));
@@ -4840,8 +4843,10 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
 				
 				du = PrimVar_j[z]-PrimVar_i[z];
 								
-				w = 1.0/(fabs(du)+0.000001);
-
+				//w = 1.0/(sqrt(fabs(du))+del);
+				
+				w = 1.0/(fabs(du)+del);
+				
 				w_A[i][0] = w * A[i][0];
 				w_A[i][1] = w * A[i][1];
 				
@@ -4949,33 +4954,7 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
   }
   
   
-      /*--- Loop boundary edges ---*/
- /*   for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
-          iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
-		
-		  if (geometry->node[iPoint]->GetDomain()) {
-		 
-            iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
-       
-            n = geometry->node[iPoint]->GetnPoint();
-        
-            for(i = 0;i<n;i++)
-		     {
-		     iNeigh=i;
-		     jPoint = geometry->node[iPoint]->GetPoint(iNeigh);
-			
-             for (iVar = 0; iVar < nPrimVarGrad; iVar++)
-              for (iDim = 0; iDim < nDim; iDim++) {
-			  
-               product = 0.0;
-           
-              node[iPoint]->SetReconstGradient_Primitive(iVar, iDim, product);
-            }
-          
-          }
-       }
-    }*/
-  
+
   
   //Set_MPI_Primitive_Gradient(geometry, config);
   
@@ -6467,7 +6446,7 @@ void CEulerSolver::BC_Far_Field(CGeometry *geometry, CSolver **solver_container,
   double SoundSpeed_Bound, Entropy_Bound, Vel2_Bound, Vn_Bound;
   double SoundSpeed_Infty, Entropy_Infty, Vel2_Infty, Vn_Infty, Qn_Infty;
   double RiemannPlus, RiemannMinus;
-  double *V_infty, *V_domain;
+  double *V_infty, *V_domain, y;
   
   double Gas_Constant     = config->GetGas_ConstantND();
   
@@ -6649,7 +6628,8 @@ void CEulerSolver::BC_Far_Field(CGeometry *geometry, CSolver **solver_container,
         /*--- All the values computed from the infinity ---*/
         V_infty[0] = GetPressure_Inf();
         for (iDim = 0; iDim < nDim; iDim++)
-          V_infty[iDim+1] = GetVelocity_Inf(iDim);
+           V_infty[iDim+1] = GetVelocity_Inf(iDim);
+              
         V_infty[nDim+1] = GetDensity_Inf();
         V_infty[nDim+2] = config->GetArtComp_Factor();
         
@@ -7246,6 +7226,19 @@ void CEulerSolver::BC_Riemann(CGeometry *geometry, CSolver **solver_container,
 
 }
 
+void CEulerSolver::BC_Xinlet(CGeometry *geometry, CSolver **solver_container,
+                            CNumerics *conv_numerics, CNumerics *visc_numerics, CConfig *config, unsigned short val_marker) {
+
+
+}
+
+void CEulerSolver::BC_Xoutlet(CGeometry *geometry, CSolver **solver_container,
+                            CNumerics *conv_numerics, CNumerics *visc_numerics, CConfig *config, unsigned short val_marker) {
+
+
+}
+
+
 void CEulerSolver::BC_Inlet(CGeometry *geometry, CSolver **solver_container,
                             CNumerics *conv_numerics, CNumerics *visc_numerics, CConfig *config, unsigned short val_marker) {
   unsigned short iDim;
@@ -7253,7 +7246,7 @@ void CEulerSolver::BC_Inlet(CGeometry *geometry, CSolver **solver_container,
   double P_Total, T_Total, Velocity[3], Velocity2, H_Total, Temperature, Riemann,
   Pressure, Density, Energy, *Flow_Dir, Mach2, SoundSpeed2, SoundSpeed_Total2, Vel_Mag,
   alpha, aa, bb, cc, dd, Area, UnitNormal[3];
-  double *V_inlet, *V_domain;
+  double *V_inlet, *V_domain, *Coord, y;
   
   bool implicit             = (config->GetKind_TimeIntScheme_Flow() == EULER_IMPLICIT);
   bool grid_movement        = config->GetGrid_Movement();
@@ -7457,7 +7450,6 @@ void CEulerSolver::BC_Inlet(CGeometry *geometry, CSolver **solver_container,
         /*--- The velocity is computed from the infinity values ---*/
         for (iDim = 0; iDim < nDim; iDim++)
           V_inlet[iDim+1] = GetVelocity_Inf(iDim);
-        
         /*--- Neumann condition for pressure ---*/
         V_inlet[0] = node[iPoint]->GetPressureInc();
         
