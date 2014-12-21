@@ -232,6 +232,28 @@ static const map<string, ENUM_REGIME> Regime_Map = CCreateMap<string, ENUM_REGIM
 ("INCOMPRESSIBLE", INCOMPRESSIBLE)
 ("FREESURFACE", FREESURFACE);
 
+
+/*-------------------------------------------*/
+/*!
+ * \brief different TEST modes
+ */
+enum ENUM_TESTCASE {
+  NO_CASE = 0,  
+  CASE1 = 2,				/*!< \brief Definition of incompressible solver. */
+  CASE2 = 3,
+  CASE3 = 4,
+  CASE4 = 5,
+  CASE5 = 6			/*!< \brief Definition of freesurface solver (incompressible). */
+};
+static const map<string, ENUM_TESTCASE> Testcase_Map = CCreateMap<string, ENUM_TESTCASE>
+("NONE",NO_CASE)
+("CASE1", CASE1)
+("CASE2", CASE2)
+("CASE3", CASE3)
+("CASE4", CASE4)
+("CASE5", CASE5);
+/*-------------------------------------------*/
+
 /*!
  * \brief different system of measurements
  */

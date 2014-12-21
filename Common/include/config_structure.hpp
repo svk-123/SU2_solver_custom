@@ -102,6 +102,7 @@ private:
 	double SharpEdgesCoeff;				/*!< \brief Coefficient to identify the limit of a sharp edge. */
   unsigned short SystemMeasurements; /*!< \brief System of measurements. */
   unsigned short Kind_Regime;  /*!< \brief Kind of adjoint function. \n SYNTAX: REGIME_TYPE = COMPRESSIBLE.\ingroup Config */
+   unsigned short Kind_Testcase; 
   unsigned short Kind_ObjFunc;  /*!< \brief Kind of objective function. \n SYNTAX: OBJECTIVE_FUNCTION = DRAG_COEFFICIENT \ingroup Config */
   unsigned short Kind_SensSmooth; /*!< \brief Kind of sensitivity smoothing technique.  \n SYNTAX: SENS_SMOOTHING = NO_SMOOTH  \ingroup Config */
   unsigned short Continuous_Eqns; /*!< \brief Which equations to treat continuously (Hybrid adjoint)  \n SYNTAX: CONTINUOUS_EQNS = EULER_EQNS \ingroup Config */
@@ -2400,7 +2401,7 @@ public:
 	 * \return Governing equation that we are solving.
 	 */
 	unsigned short GetKind_Regime(void);
-
+	unsigned short GetKind_Testcase(void);
   /*!
 	 * \brief Governing equations of the flow (it can be different from the run time equation).
 	 * \param[in] val_zone - Zone where the soler is applied.

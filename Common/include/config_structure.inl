@@ -402,6 +402,8 @@ inline unsigned short CConfig::GetKind_Solver(void) { return Kind_Solver; }
 
 inline unsigned short CConfig::GetKind_Regime(void) { return Kind_Regime; }
 
+inline unsigned short CConfig::GetKind_Testcase(void) { return Kind_Testcase; }
+
 inline unsigned short CConfig::GetSystemMeasurements(void) { return SystemMeasurements; }
 
 inline unsigned short CConfig::GetKind_GasModel(void) { return Kind_GasModel; }

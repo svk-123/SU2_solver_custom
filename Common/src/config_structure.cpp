@@ -175,6 +175,8 @@ void CConfig::SetConfig_Options(unsigned short val_iZone, unsigned short val_nZo
 
   /* DESCRIPTION: Adjoint type */
   addEnumOption("REGIME_TYPE", Kind_Regime, Regime_Map, COMPRESSIBLE);
+  
+  addEnumOption("TESTCASE_TYPE", Kind_Testcase, Testcase_Map, NO_CASE);
 
   /* DESCRIPTION: Physical governing equations */
   addEnumOption("PHYSICAL_PROBLEM", Kind_Solver, Solver_Map, NO_SOLVER);
