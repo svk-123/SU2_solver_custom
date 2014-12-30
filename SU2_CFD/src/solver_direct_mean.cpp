@@ -3175,12 +3175,12 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
           Primitive_i[iVar] = V_i[iVar] + Project_Grad_i;
           Primitive_j[iVar] = V_j[iVar] + Project_Grad_j;
         }
-        
-      if ((boundary_i || boundary_j)&& sdwls) {
+       /* to make first order at boundary */
+      /*if ((boundary_i || boundary_j)&& sdwls) { 
 		  
 		  Primitive_i[iVar] = V_i[iVar];
           Primitive_j[iVar] = V_j[iVar];
-	   }
+	   }*/
 	   
        
         
@@ -11156,7 +11156,8 @@ void CNSSolver::BC_HeatFlux_Wall(CGeometry *geometry, CSolver **solver_container
           eddy_viscosity    = node[iPoint]->GetEddyViscosity();
         }
         if (incompressible || freesurface) {
-          Pressure = node[iPoint]->GetPressureInc();
+            Pressure = node[iPoint]->GetPressureInc();
+            //Pressure = node[Point_Normal]->GetPrimitive(0); // added by me
           laminar_viscosity = node[iPoint]->GetLaminarViscosityInc();
           eddy_viscosity    = node[iPoint]->GetEddyViscosityInc();
         }
@@ -11293,7 +11294,6 @@ void CNSSolver::BC_HeatFlux_Wall(CGeometry *geometry, CSolver **solver_container
 
 void CNSSolver::BC_Xwall(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics, CNumerics *visc_numerics, CConfig *config, unsigned short val_marker) {
   
- 
   /*--- Local variables ---*/
   unsigned short iDim, jDim, iVar, jVar;
   unsigned long iVertex, iPoint, Point_Normal, total_index;
