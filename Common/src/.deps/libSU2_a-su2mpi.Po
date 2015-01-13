@@ -1,3 +1,6 @@
-../src/libSU2_a-su2mpi.o: ../src/su2mpi.cpp ../src/../include/su2mpi.hpp
+../src/libSU2_a-su2mpi.o: ../src/su2mpi.cpp /usr/include/stdc-predef.h \
+ ../src/../include/su2mpi.hpp
+
+/usr/include/stdc-predef.h:
 
 ../src/../include/su2mpi.hpp:

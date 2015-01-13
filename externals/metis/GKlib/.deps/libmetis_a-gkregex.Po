@@ -1,1 +1,3 @@
-GKlib/libmetis_a-gkregex.o: GKlib/gkregex.c
+GKlib/libmetis_a-gkregex.o: GKlib/gkregex.c /usr/include/stdc-predef.h
+
+/usr/include/stdc-predef.h:

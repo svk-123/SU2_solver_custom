@@ -22,7 +22,7 @@
 
 #include "../include/solver_structure.hpp"
 
-CEulerSolver::CEulerSolver(void) : CSolver() {
+CEulerSolver::CEulerSolver(void) : CSolver()  {
   
   /*--- Basic array initialization ---*/
   
@@ -3112,12 +3112,10 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
     
     iPoint = geometry->edge[iEdge]->GetNode(0); jPoint = geometry->edge[iEdge]->GetNode(1);
     numerics->SetNormal(geometry->edge[iEdge]->GetNormal());
-    
-    bool boundary_i = geometry->node[iPoint]->GetBoundary() || geometry->node[iPoint]->GetSolidBoundary() || geometry->node[iPoint]->GetPhysicalBoundary();
-    bool boundary_j = geometry->node[jPoint]->GetBoundary() || geometry->node[iPoint]->GetSolidBoundary() || geometry->node[iPoint]->GetPhysicalBoundary();
-    
-    
-    
+           
+    //bool wall_i = geometry->node[iPoint]->GetPhysicalBoundary() ;
+    //bool wall_j = geometry->node[jPoint]->GetPhysicalBoundary() ;
+   
     /*--- Roe Turkel preconditioning ---*/
     
     if (roe_turkel) {
@@ -3174,14 +3172,14 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
       else  {
           Primitive_i[iVar] = V_i[iVar] + Project_Grad_i;
           Primitive_j[iVar] = V_j[iVar] + Project_Grad_j;
-        }
-       /* to make first order at boundary */
-      /*if ((boundary_i || boundary_j)&& sdwls) { 
-		  
-		  Primitive_i[iVar] = V_i[iVar];
-          Primitive_j[iVar] = V_j[iVar];
-	   }*/
-	   
+      }
+     
+      //if (wall_i && wall_j) {
+	 //
+	   //   Primitive_i[iVar] = V_i[iVar] ;
+         // Primitive_j[iVar] = V_j[iVar] ;
+	 
+	  //}//
        
         
       }
@@ -4752,16 +4750,20 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
 	
 	double **A,dx,dy,du,w,derivatives[nPrimVarGrad+1][nDim+1];
 	
-	double **w_A, *b,*u,**q,**r,*qb,del;
+	double **w_A, *b,*u,**q,**r,*qb,del,rad;
+	
+	double dx1,dy1,dx2,dy2,du1,du2;
 	
 	m = 2; // column  size (nxm)
+	del = 1e-12;   
 	  
-	del = 0.000001;   
+    ofstream file;
+	file.open("du.dat", ios::out);  
 	  
   /*--- Loop over points of the grid ---*/
         
   for (iPoint = 0; iPoint < nPointDomain; iPoint++) {
-    
+           
     /*--- Set the value of the singular ---*/
     singular = false;
     
@@ -4772,14 +4774,17 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
     /*--- Get primitives from CVariable ---*/
     
     PrimVar_i = node[iPoint]->GetPrimitive();
+                      
+    n = geometry->node[iPoint]->GetnPoint(); 
+           
+    rad = sqrt(Coord_i[0]*Coord_i[0]+Coord_i[1]*Coord_i[1]);
     
-    
-    n = geometry->node[iPoint]->GetnPoint(); // no of vertex neighbour
-    
-     
+    bool wall = geometry->node[iPoint]->GetPhysicalBoundary();
+   
+		 	  
     /*--- Inizialization of variables ---*/
     
-        w_A = (double **)malloc((n)*sizeof(double *));
+        w_A = (double **)malloc(n*sizeof(double *));
 		
 		for(i=0;i<n;i++)
 		{
@@ -4807,11 +4812,12 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
 		{
 			r[i] = (double *)malloc(m * sizeof(double));
 		}
+		
 		//************************************************************
 		//Allocate matrix b = n x 1
 		
 		
-		b = (double *)malloc(n*sizeof(double ));
+		b = (double *)malloc((n+1)*sizeof(double ));
 		
 		qb = (double *)malloc(m*sizeof(double ));
 		
@@ -4822,12 +4828,13 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
 		 iNeigh=i;
          jPoint = geometry->node[iPoint]->GetPoint(iNeigh);
          Coord_j = geometry->node[jPoint]->GetCoord();
-         
-                  
+     
+              
             dx = Coord_j[0]-Coord_i[0];
 			
 			dy = Coord_j[1]-Coord_i[1];
-                  
+		
+			
 			A[i][0] = dx;
 			A[i][1] = dy;
 
@@ -4842,15 +4849,14 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
 				PrimVar_j = node[jPoint]->GetPrimitive();
 				
 				du = PrimVar_j[z]-PrimVar_i[z];
-								
-				//w = 1.0/(sqrt(fabs(du))+del);
-				
-				w = 1.0/(fabs(du)+del);
-				
+
+				w = 1.0/(fabs(du)+1e-12);
+												
 				w_A[i][0] = w * A[i][0];
 				w_A[i][1] = w * A[i][1];
 				
 				b[i] = w * du;
+			
 			}
 			
 			//GS orthogolization
@@ -4924,6 +4930,7 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
 			free(A[i]);
 			free(q[i]);
 		}
+		
 		free(w_A);
 		free(A);
 		free(b);
@@ -4954,7 +4961,7 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
   }
   
   
-
+  file.close();
   
   //Set_MPI_Primitive_Gradient(geometry, config);
   
@@ -5092,7 +5099,7 @@ void CEulerSolver::SetPrimitive_Gradient_LS(CGeometry *geometry, CConfig *config
     
   }
   
-  Set_MPI_Primitive_Gradient(geometry, config);
+  //Set_MPI_Primitive_Gradient(geometry, config);
   
 }
 
@@ -11156,8 +11163,7 @@ void CNSSolver::BC_HeatFlux_Wall(CGeometry *geometry, CSolver **solver_container
           eddy_viscosity    = node[iPoint]->GetEddyViscosity();
         }
         if (incompressible || freesurface) {
-            Pressure = node[iPoint]->GetPressureInc();
-            //Pressure = node[Point_Normal]->GetPrimitive(0); // added by me
+          Pressure = node[iPoint]->GetPressureInc();
           laminar_viscosity = node[iPoint]->GetLaminarViscosityInc();
           eddy_viscosity    = node[iPoint]->GetEddyViscosityInc();
         }
@@ -11304,7 +11310,6 @@ void CNSSolver::BC_Xwall(CGeometry *geometry, CSolver **solver_container, CNumer
   double total_viscosity, div_vel, Density, turb_ke, tau_vel[3], UnitNormal[3];
   double laminar_viscosity = 0.0, eddy_viscosity = 0.0, **grad_primvar, tau[3][3];
   double delta[3][3] = {{1.0, 0.0, 0.0},{0.0,1.0,0.0},{0.0,0.0,1.0}};
-  double *V_wall, *V_domain;
   
   bool implicit       = (config->GetKind_TimeIntScheme_Flow() == EULER_IMPLICIT);
   bool compressible   = (config->GetKind_Regime() == COMPRESSIBLE);
@@ -11321,8 +11326,7 @@ void CNSSolver::BC_Xwall(CGeometry *geometry, CSolver **solver_container, CNumer
   /*--- Loop over all of the vertices on this boundary marker ---*/
   for(iVertex = 0; iVertex < geometry->nVertex[val_marker]; iVertex++) {
     iPoint = geometry->vertex[val_marker][iVertex]->GetNode();
-
-   
+    
     /*--- Check if the node belongs to the domain (i.e, not a halo node) ---*/
     if (geometry->node[iPoint]->GetDomain()) {
       
@@ -11337,7 +11341,6 @@ void CNSSolver::BC_Xwall(CGeometry *geometry, CSolver **solver_container, CNumer
       for (iDim = 0; iDim < nDim; iDim++)
         UnitNormal[iDim] = -Normal[iDim]/Area;
       
-     
       /*--- Initialize the convective & viscous residuals to zero ---*/
       for (iVar = 0; iVar < nVar; iVar++) {
         Res_Conv[iVar] = 0.0;
@@ -11357,19 +11360,12 @@ void CNSSolver::BC_Xwall(CGeometry *geometry, CSolver **solver_container, CNumer
        condition (Dirichlet). Fix the velocity and remove any
        contribution to the residual at this node. ---*/
       if (compressible)   node[iPoint]->SetVelocity_Old(Vector);
-      if (incompressible || freesurface) {
-		  node[iPoint]->SetVelocityInc_Old(Vector);
-          Pressure = node[iPoint]->GetPressureInc();
-      }
+      if (incompressible || freesurface) node[iPoint]->SetVelocityInc_Old(Vector);
+      
       for (iDim = 0; iDim < nDim; iDim++)
         LinSysRes.SetBlock_Zero(iPoint, iDim+1);
       node[iPoint]->SetVel_ResTruncError_Zero();
-         
       
-      for (iDim = 0; iDim < nDim; iDim++)
-        Res_Conv[iDim+1] = Pressure*UnitNormal[iDim]*Area;
-        
-           
       /*--- Apply a weak boundary condition for the energy equation.
        Compute the residual due to the prescribed heat flux. ---*/
       Res_Visc[nDim+1] = Wall_HeatFlux * Area;
@@ -11392,7 +11388,8 @@ void CNSSolver::BC_Xwall(CGeometry *geometry, CSolver **solver_container, CNumer
           eddy_viscosity    = node[iPoint]->GetEddyViscosity();
         }
         if (incompressible || freesurface) {
-          Pressure = node[iPoint]->GetPressureInc();
+          //Pressure = node[iPoint]->GetPressureInc();
+          Pressure = node[Point_Normal]->GetPrimitive(0); // added by me
           laminar_viscosity = node[iPoint]->GetLaminarViscosityInc();
           eddy_viscosity    = node[iPoint]->GetEddyViscosityInc();
         }
