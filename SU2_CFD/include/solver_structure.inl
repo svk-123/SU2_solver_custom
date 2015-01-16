@@ -88,6 +88,7 @@ inline void CSolver::SetPrimitive_Reconst_Gradient_WLS(CGeometry *geometry, CCon
 inline void CSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CConfig *config) { }
 
 inline void CSolver::Set_MPI_Primitive_Gradient(CGeometry *geometry, CConfig *config) { }
+inline void CSolver::Set_MPI_Primitive_ReconstGradient(CGeometry *geometry, CConfig *config) { }
 
 inline void CSolver::SetPrimitive_Limiter_MPI(CGeometry *geometry, CConfig *config) { }
 

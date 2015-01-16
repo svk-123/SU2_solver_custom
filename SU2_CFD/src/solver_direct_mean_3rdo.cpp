@@ -1372,130 +1372,6 @@ void CEulerSolver::Set_MPI_Solution_Limiter(CGeometry *geometry, CConfig *config
   
 }
 
-void CEulerSolver::Set_MPI_Primitive_ReconstGradient(CGeometry *geometry, CConfig *config) {
-   unsigned short iVar, iDim, iMarker, iPeriodic_Index, MarkerS, MarkerR;
-  unsigned long iVertex, iPoint, nVertexS, nVertexR, nBufferS_Vector, nBufferR_Vector;
-  double rotMatrix[3][3], *angles, theta, cosTheta, sinTheta, phi, cosPhi, sinPhi, psi, cosPsi, sinPsi,
-  *Buffer_Receive_ReconstGradient = NULL, *Buffer_Send_ReconstGradient = NULL;
-  int send_to, receive_from;
-  
-  double **ReconstGradient = new double* [nPrimVarGrad];
-  for (iVar = 0; iVar < nPrimVarGrad; iVar++)
-    ReconstGradient[iVar] = new double[nDim];
-  
-#ifdef HAVE_MPI
-  MPI_Status status;
-#endif
-  
-  for (iMarker = 0; iMarker < nMarker; iMarker++) {
-    
-    if ((config->GetMarker_All_KindBC(iMarker) == SEND_RECEIVE) &&
-        (config->GetMarker_All_SendRecv(iMarker) > 0)) {
-      
-      MarkerS = iMarker;  MarkerR = iMarker+1;
-      
-      send_to = config->GetMarker_All_SendRecv(MarkerS)-1;
-      receive_from = abs(config->GetMarker_All_SendRecv(MarkerR))-1;
-      
-      nVertexS = geometry->nVertex[MarkerS];  nVertexR = geometry->nVertex[MarkerR];
-      nBufferS_Vector = nVertexS*nPrimVarGrad*nDim;        nBufferR_Vector = nVertexR*nPrimVarGrad*nDim;
-      
-      /*--- Allocate Receive and send buffers  ---*/
-      Buffer_Receive_ReconstGradient = new double [nBufferR_Vector];
-      Buffer_Send_ReconstGradient = new double[nBufferS_Vector];
-      
-      /*--- Copy the solution old that should be sended ---*/
-      for (iVertex = 0; iVertex < nVertexS; iVertex++) {
-        iPoint = geometry->vertex[MarkerS][iVertex]->GetNode();
-        for (iVar = 0; iVar < nPrimVarGrad; iVar++)
-          for (iDim = 0; iDim < nDim; iDim++)
-            Buffer_Send_ReconstGradient[iDim*nPrimVarGrad*nVertexS+iVar*nVertexS+iVertex] = node[iPoint]->GetReconstGradient_Primitive(iVar, iDim);
-      }
-      
-#ifdef HAVE_MPI
-      
-      /*--- Send/Receive information using Sendrecv ---*/
-      MPI_Sendrecv(Buffer_Send_ReconstGradient, nBufferS_Vector, MPI_DOUBLE, send_to, 0,
-                   Buffer_Receive_ReconstGradient, nBufferR_Vector, MPI_DOUBLE, receive_from, 0, MPI_COMM_WORLD, &status);
-      
-#else
-      
-      /*--- Receive information without MPI ---*/
-      for (iVertex = 0; iVertex < nVertexR; iVertex++) {
-        iPoint = geometry->vertex[MarkerR][iVertex]->GetNode();
-        for (iVar = 0; iVar < nPrimVarGrad; iVar++)
-          for (iDim = 0; iDim < nDim; iDim++)
-            Buffer_Receive_ReconstGradient[iDim*nPrimVarGrad*nVertexR+iVar*nVertexR+iVertex] = Buffer_Send_ReconstGradient[iDim*nPrimVarGrad*nVertexR+iVar*nVertexR+iVertex];
-      }
-      
-#endif
-      
-      /*--- Deallocate send buffer ---*/
-      delete [] Buffer_Send_ReconstGradient;
-      
-      /*--- Do the coordinate transformation ---*/
-      for (iVertex = 0; iVertex < nVertexR; iVertex++) {
-        
-        /*--- Find point and its type of transformation ---*/
-        iPoint = geometry->vertex[MarkerR][iVertex]->GetNode();
-        iPeriodic_Index = geometry->vertex[MarkerR][iVertex]->GetRotation_Type();
-        
-        /*--- Retrieve the supplied periodic information. ---*/
-        angles = config->GetPeriodicRotation(iPeriodic_Index);
-        
-        /*--- Store angles separately for clarity. ---*/
-        theta    = angles[0];   phi    = angles[1];     psi    = angles[2];
-        cosTheta = cos(theta);  cosPhi = cos(phi);      cosPsi = cos(psi);
-        sinTheta = sin(theta);  sinPhi = sin(phi);      sinPsi = sin(psi);
-        
-        /*--- Compute the rotation matrix. Note that the implicit
-         ordering is rotation about the x-axis, y-axis,
-         then z-axis. Note that this is the transpose of the matrix
-         used during the preprocessing stage. ---*/
-        rotMatrix[0][0] = cosPhi*cosPsi;    rotMatrix[1][0] = sinTheta*sinPhi*cosPsi - cosTheta*sinPsi;     rotMatrix[2][0] = cosTheta*sinPhi*cosPsi + sinTheta*sinPsi;
-        rotMatrix[0][1] = cosPhi*sinPsi;    rotMatrix[1][1] = sinTheta*sinPhi*sinPsi + cosTheta*cosPsi;     rotMatrix[2][1] = cosTheta*sinPhi*sinPsi - sinTheta*cosPsi;
-        rotMatrix[0][2] = -sinPhi;          rotMatrix[1][2] = sinTheta*cosPhi;                              rotMatrix[2][2] = cosTheta*cosPhi;
-        
-        /*--- Copy conserved variables before performing transformation. ---*/
-        for (iVar = 0; iVar < nPrimVarGrad; iVar++)
-          for (iDim = 0; iDim < nDim; iDim++)
-            ReconstGradient[iVar][iDim] = Buffer_Receive_ReconstGradient[iDim*nPrimVarGrad*nVertexR+iVar*nVertexR+iVertex];
-        
-        /*--- Need to rotate the ReconstGradients for all conserved variables. ---*/
-        for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
-          if (nDim == 2) {
-            ReconstGradient[iVar][0] = rotMatrix[0][0]*Buffer_Receive_ReconstGradient[0*nPrimVarGrad*nVertexR+iVar*nVertexR+iVertex] + rotMatrix[0][1]*Buffer_Receive_ReconstGradient[1*nPrimVarGrad*nVertexR+iVar*nVertexR+iVertex];
-            ReconstGradient[iVar][1] = rotMatrix[1][0]*Buffer_Receive_ReconstGradient[0*nPrimVarGrad*nVertexR+iVar*nVertexR+iVertex] + rotMatrix[1][1]*Buffer_Receive_ReconstGradient[1*nPrimVarGrad*nVertexR+iVar*nVertexR+iVertex];
-          }
-          else {
-            ReconstGradient[iVar][0] = rotMatrix[0][0]*Buffer_Receive_ReconstGradient[0*nPrimVarGrad*nVertexR+iVar*nVertexR+iVertex] + rotMatrix[0][1]*Buffer_Receive_ReconstGradient[1*nPrimVarGrad*nVertexR+iVar*nVertexR+iVertex] + rotMatrix[0][2]*Buffer_Receive_ReconstGradient[2*nPrimVarGrad*nVertexR+iVar*nVertexR+iVertex];
-            ReconstGradient[iVar][1] = rotMatrix[1][0]*Buffer_Receive_ReconstGradient[0*nPrimVarGrad*nVertexR+iVar*nVertexR+iVertex] + rotMatrix[1][1]*Buffer_Receive_ReconstGradient[1*nPrimVarGrad*nVertexR+iVar*nVertexR+iVertex] + rotMatrix[1][2]*Buffer_Receive_ReconstGradient[2*nPrimVarGrad*nVertexR+iVar*nVertexR+iVertex];
-            ReconstGradient[iVar][2] = rotMatrix[2][0]*Buffer_Receive_ReconstGradient[0*nPrimVarGrad*nVertexR+iVar*nVertexR+iVertex] + rotMatrix[2][1]*Buffer_Receive_ReconstGradient[1*nPrimVarGrad*nVertexR+iVar*nVertexR+iVertex] + rotMatrix[2][2]*Buffer_Receive_ReconstGradient[2*nPrimVarGrad*nVertexR+iVar*nVertexR+iVertex];
-          }
-        }
-        
-        /*--- Store the received information ---*/
-        for (iVar = 0; iVar < nPrimVarGrad; iVar++)
-          for (iDim = 0; iDim < nDim; iDim++)
-            node[iPoint]->SetReconstGradient_Primitive(iVar, iDim, ReconstGradient[iVar][iDim]);
-        
-      }
-      
-      /*--- Deallocate receive buffer ---*/
-      delete [] Buffer_Receive_ReconstGradient;
-      
-    }
-    
-  }
-  
-  for (iVar = 0; iVar < nPrimVarGrad; iVar++)
-    delete [] ReconstGradient[iVar];
-  delete [] ReconstGradient;
-  
-  
-}
-
-
 void CEulerSolver::Set_MPI_Primitive_Gradient(CGeometry *geometry, CConfig *config) {
   unsigned short iVar, iDim, iMarker, iPeriodic_Index, MarkerS, MarkerR;
   unsigned long iVertex, iPoint, nVertexS, nVertexR, nBufferS_Vector, nBufferR_Vector;
@@ -1617,8 +1493,6 @@ void CEulerSolver::Set_MPI_Primitive_Gradient(CGeometry *geometry, CConfig *conf
   delete [] Gradient;
   
 }
-
-
 
 void CEulerSolver::Set_MPI_Primitive_Limiter(CGeometry *geometry, CConfig *config) {
   unsigned short iVar, iMarker, iPeriodic_Index, MarkerS, MarkerR;
@@ -4656,7 +4530,7 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_WLS(CGeometry *geometry, CConfi
 
   	int i,l,j,cell_adj,n,m,k,x,z;
 	
-	double **A,dx,dy,du,w,derivatives[nPrimVarGrad+1][nDim+1];
+	double **A,dx,dy,du,w,derivatives[30][30];
 	
 	double **w_A, *b,*u,**q,**r,*qb,del;
 	
@@ -4859,7 +4733,7 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_WLS(CGeometry *geometry, CConfi
   
 
   
-  Set_MPI_Primitive_ReconstGradient(geometry, config);
+  //Set_MPI_Primitive_Gradient(geometry, config);
   
 }
 
@@ -4874,15 +4748,17 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
 
   	int i,l,j,cell_adj,n,m,k,x,z;
 	
-	double **A,dx,dy,du,w,derivatives[nPrimVarGrad+1][nDim+1];
+	double **A,dx,dy,du,w,derivatives[nPrimVarGrad+1][nDim+6];
 	
 	double **w_A, *b,*u,**q,**r,*qb,del,rad;
 	
 	double dx1,dy1,dx2,dy2,du1,du2;
 	
-	m = 2; // column  size (nxm)
+	m = 5; // column  size (nxm)
 	del = 1e-12;   
 	  
+    ofstream file;
+	file.open("du.dat", ios::out);  
 	  
   /*--- Loop over points of the grid ---*/
         
@@ -4961,6 +4837,9 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
 			
 			A[i][0] = dx;
 			A[i][1] = dy;
+			A[i][2] = 0.5 * dx * dx;
+			A[i][3] = 0.5 * dy * dy;
+			A[i][4] = dx * dy;
 
 		}
 		
@@ -4974,11 +4853,17 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
 				
 				du = PrimVar_j[z]-PrimVar_i[z];
 
-				w = 1.0/(sqrt(fabs(du))+1e-12);
+				w = 1.0/(fabs(du)+1e-6);
 				
+				//if ((config->GetExtIter() == 5000) && z==0) {
+				//file<<iPoint<<"\t"<<w<<"\t"<<du<<"\t"<<rad<<endl;
+				//}
 				
 				w_A[i][0] = w * A[i][0];
 				w_A[i][1] = w * A[i][1];
+				w_A[i][2] = w * A[i][2];
+				w_A[i][3] = w * A[i][3];
+				w_A[i][4] = w * A[i][4];
 				
 				b[i] = w * du;
 			
@@ -5041,12 +4926,14 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
 				{
 					qb[j] = qb[j] - r[j][i] * derivatives[z][i];
 				}
-				derivatives[z][j] = qb[j]/r[j][j];
+				    derivatives[z][j] = qb[j]/r[j][j];
 				
 			}
 			
 			
+			
 		}
+			
 			
 		
 		for(i=0;i<n;i++)
@@ -5073,13 +4960,11 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
         /*--- Computation of the gradient: S*c ---*/
     for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
       for (iDim = 0; iDim < nDim; iDim++) {
-		          
- 			  			 
-		  product = derivatives[iVar][iDim];
-			  
-		     
+		       
+          product = derivatives[iVar][iDim];
+			      
 	      node[iPoint]->SetReconstGradient_Primitive(iVar, iDim, product);
-      
+          
       }
     }
     
@@ -5088,9 +4973,9 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
   }
   
   
+  file.close();
   
-  
-  Set_MPI_Primitive_ReconstGradient(geometry, config);
+  //Set_MPI_Primitive_Gradient(geometry, config);
   
 }
 

@@ -947,7 +947,8 @@ public:
 	 * \param[in] config - Definition of the particular problem.
 	 */
 	virtual void Set_MPI_Primitive_Gradient(CGeometry *geometry, CConfig *config);
-  
+  	virtual void Set_MPI_Primitive_ReconstGradient(CGeometry *geometry, CConfig *config);
+
   /*!
 	 * \brief A virtual member.
 	 * \param[in] geometry - Geometrical definition of the problem.
@@ -2387,7 +2388,8 @@ public:
 	 * \param[in] config - Definition of the particular problem.
 	 */
 	void Set_MPI_Primitive_Gradient(CGeometry *geometry, CConfig *config);
-    
+    void Set_MPI_Primitive_ReconstGradient(CGeometry *geometry, CConfig *config);
+
 	/*!
 	 * \brief Compute the limiter of the primitive variables.
 	 * \param[in] geometry - Geometrical definition of the problem.
@@ -6084,7 +6086,7 @@ public:
 	 * \param[in] config - Definition of the particular problem.
 	 */
   void Set_MPI_Primitive_Gradient(CGeometry *geometry, CConfig *config);
-  
+
   /*!
 	 * \brief Set the fluid solver nondimensionalization.
 	 * \param[in] geometry - Geometrical definition of the problem.
