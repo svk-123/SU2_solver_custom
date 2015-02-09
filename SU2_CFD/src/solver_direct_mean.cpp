@@ -4975,8 +4975,7 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
 				du = PrimVar_j[z]-PrimVar_i[z];
 
 				w = 1.0/(sqrt(fabs(du))+1e-12);
-				
-				
+								
 				w_A[i][0] = w * A[i][0];
 				w_A[i][1] = w * A[i][1];
 				
@@ -5226,7 +5225,7 @@ void CEulerSolver::SetPrimitive_Gradient_LS(CGeometry *geometry, CConfig *config
     
   }
   
-  //Set_MPI_Primitive_Gradient(geometry, config);
+  Set_MPI_Primitive_Gradient(geometry, config);
   
 }
 
