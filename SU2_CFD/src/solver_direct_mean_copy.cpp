@@ -4866,17 +4866,23 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_WLS(CGeometry *geometry, CConfi
 
 void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CConfig *config) {
   
- 
   unsigned short iVar, iDim, jDim, iNeigh , iMarker;
   unsigned long iPoint, jPoint, iEdge, iVertex;
-  double *PrimVar_i, *PrimVar_j, *Coord_i, *Coord_j, product;
+  double *PrimVar_i, *PrimVar_j, *Coord_i, *Coord_j, r11, r12, r13, r22, r23, r23_a,
+  r23_b, r33, weight, product, z11, z12, z13, z22, z23, z33, detR2;
   bool singular;
 
   	int i,l,j,cell_adj,n,m,k,x,z;
 	
-	double dx,dy,du,w,derivatives[nPrimVarGrad+1][nDim+1];
+	double **A,dx,dy,du,w,derivatives[nPrimVarGrad+1][nDim+1];
 	
-    double l11,l12,l21,l22,r1,r2,g;
+	double **w_A, *b,*u,**q,**r,*qb,del,rad;
+	
+	double dx1,dy1,dx2,dy2,du1,du2;
+	
+	m = 2; // column  size (nxm)
+	del = 1e-12;   
+	  
 	  
   /*--- Loop over points of the grid ---*/
         
@@ -4895,47 +4901,173 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
                       
     n = geometry->node[iPoint]->GetnPoint(); 
            
+    rad = sqrt(Coord_i[0]*Coord_i[0]+Coord_i[1]*Coord_i[1]);
+    
+    bool wall = geometry->node[iPoint]->GetPhysicalBoundary();
+   
+		 	  
+    /*--- Inizialization of variables ---*/
+    
+        w_A = (double **)malloc(n*sizeof(double *));
+		
+		for(i=0;i<n;i++)
+		{
+			w_A[i] = (double *)malloc(m * sizeof(double));
+			
+		}
+		
+		A =(double **) malloc(n*sizeof(double *));
+		
+		for(i=0;i<n;i++)
+		{
+			A[i] = (double *)malloc(m * sizeof(double));
+		}
+		
+		q =(double **) malloc(n*sizeof(double *));
+		
+		for(i=0;i<n;i++)
+		{
+			q[i] = (double *)malloc(m * sizeof(double));
+		}
+		
+		r =(double **) malloc(m*sizeof(double *));
+		
+		for(i=0;i<m;i++)
+		{
+			r[i] = (double *)malloc(m * sizeof(double));
+		}
+		
+		//************************************************************
+		//Allocate matrix b = n x 1
+		
+		
+		b = (double *)malloc((n+1)*sizeof(double ));
+		
+		qb = (double *)malloc(m*sizeof(double ));
+		
+		
+		for(i = 0;i<n;i++)
+		{
+			
+		 iNeigh=i;
+         jPoint = geometry->node[iPoint]->GetPoint(iNeigh);
+         Coord_j = geometry->node[jPoint]->GetCoord();
+     
+              
+            dx = Coord_j[0]-Coord_i[0];
+			
+			dy = Coord_j[1]-Coord_i[1];
+		
+			
+			A[i][0] = dx;
+			A[i][1] = dy;
 
+		}
+		
 		for(z=0;z<nPrimVarGrad;z++)
 		{ 
-			l11=0.0;
-			l22=0.0;
-			l12=0.0;
-			l21=0.0;
-			r1=0.0;
-			r2=0.0;
-			
 			for(i=0;i<n;i++)
 			{
-			
 				iNeigh=i;
 				jPoint = geometry->node[iPoint]->GetPoint(iNeigh);
-				Coord_j = geometry->node[jPoint]->GetCoord();
 				PrimVar_j = node[jPoint]->GetPrimitive();
-				              
-                dx = Coord_j[0]-Coord_i[0];
-			    dy = Coord_j[1]-Coord_i[1];
 				
 				du = PrimVar_j[z]-PrimVar_i[z];
 
 				w = 1.0/(sqrt(fabs(du))+1e-12);
-				
-				l11=l11+w*dx*dx;
-				l22=l22+w*dy*dy;
-				l12=l12+w*dx*dy;
-				l21=l12;
-				r1=r1+w*dx*du;
-				r2=r2+w*dy*du;
-			
 								
+				w_A[i][0] = w * A[i][0];
+				w_A[i][1] = w * A[i][1];
+				
+				b[i] = w * du;
+			
 			}
 			
-			g=(l11*l22-l12*l12) + 1e-12;
+			//GS orthogolization
+			for(i = 0;i<m;i++)
+			{
+				for(j=0;j<n;j++)
+				{
+					q[j][i] = w_A[j][i];
+				}
+				
+				for(j=0;j<=i-1;j++)
+				{
+					r[j][i] = 0;
+					
+					for(k=0;k<n;k++)
+					{
+						r[j][i] = r[j][i] + q[k][i]*q[k][j];
+					}
+					for(k=0;k<n;k++)
+					{
+						q[k][i] = q[k][i] - r[j][i] * q[k][j];
+					}
+					
+				}
+				
+				r[i][i] = 0;
+				
+				
+				
+				for(k=0;k<n;k++)
+				{
+					r[i][i] = r[i][i] + q[k][i]*q[k][i];
+				}
+				
+				r[i][i] = sqrt(r[i][i]);
+				
+				for(k=0;k<n;k++)
+				{
+					q[k][i] = q[k][i]/r[i][i];
+				}
+				
+			}
 			
-			derivatives[z][0] = (l22*r1-l21*r2)/g;
-			derivatives[z][1] = (l11*r2-l12*r1)/g;
+			for(j=0;j<m;j++)
+			{
+				
+				qb[j]=0;
+				for(i=0;i<n;i++)
+				{
+					qb[j] = qb[j] + q[i][j]* b[i];
+				}
+			}
+			
+			for(j=m-1;j>=0;j--)
+			{
+				for(i=m-1;i>=j+1;i--)
+				{
+					qb[j] = qb[j] - r[j][i] * derivatives[z][i];
+				}
+				derivatives[z][j] = qb[j]/r[j][j];
+				
+			}
+			
+			
 		}
+			
+		
+		for(i=0;i<n;i++)
+		{
+			free(w_A[i]);
+			free(A[i]);
+			free(q[i]);
+		}
+		
+		free(w_A);
+		free(A);
+		free(b);
+		free(q);
 	
+		
+		for(i=0;i<m;i++)
+		{
+			free(r[i]);
+		}
+		free(r);
+		free(qb);
+		
         
         /*--- Computation of the gradient: S*c ---*/
     for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
@@ -4943,6 +5075,7 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
 		          
  			  			 
 		  product = derivatives[iVar][iDim];
+			  
 		     
 	      node[iPoint]->SetReconstGradient_Primitive(iVar, iDim, product);
       
@@ -4952,9 +5085,12 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS(CGeometry *geometry, CCon
                 
 
   }
-     
+  
+  
+  
+  
   Set_MPI_Primitive_ReconstGradient(geometry, config);
-    
+  
 }
 
 
