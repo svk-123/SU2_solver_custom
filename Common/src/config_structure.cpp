@@ -3698,7 +3698,8 @@ void CConfig::SetOutput(unsigned short val_software, unsigned short val_izone) {
     
     switch (Kind_Reconst_Gradient_Method) {
       case WLS: cout << "Gradient computation using WLS theorem." << endl; break;
-      case SDWLS: cout << "Gradient Computation using SDWLS method." << endl; break;
+      case SDWLS_QR: cout << "Gradient Computation using SDWLS (QR) method." << endl; break;
+      case SDWLS_DIRECT: cout << "Gradient Computation using SDWLS (DIRECT) method." << endl; break;
     }
 
     if ((Kind_Regime == INCOMPRESSIBLE) || (Kind_Regime == FREESURFACE)) {
