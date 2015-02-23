@@ -7967,8 +7967,19 @@ void CEulerSolver::BC_Inlet(CGeometry *geometry, CSolver **solver_container,
       if (incompressible) {
         
         /*--- The velocity is computed from the infinity values ---*/
-        for (iDim = 0; iDim < nDim; iDim++)
+		if (config->GetKind_Testcase() == CASE1) {
+		
+        y = geometry->node[iPoint]->GetCoord(1);
+        
+        V_inlet[1] = 24*y*(0.5-y);
+        V_inlet[2] = 0.0;
+        
+	    } else {
+			
+		for (iDim = 0; iDim < nDim; iDim++)
           V_inlet[iDim+1] = GetVelocity_Inf(iDim);
+				
+		}
         /*--- Neumann condition for pressure ---*/
         V_inlet[0] = node[iPoint]->GetPressureInc();
         
