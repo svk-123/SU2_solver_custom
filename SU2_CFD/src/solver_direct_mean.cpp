@@ -5153,7 +5153,7 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS_DIRECT(CGeometry *geometr
 				
 				du = PrimVar_j[z]-PrimVar_i[z];
 
-				w = 1.0/(sqrt(fabs(du))+1e-12);
+				w = 1.0/(fabs(du)+1e-12);
 				
 				l11=l11+w*dx*dx;
 				l22=l22+w*dy*dy;
