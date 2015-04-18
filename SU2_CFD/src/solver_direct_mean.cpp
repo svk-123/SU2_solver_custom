@@ -4987,7 +4987,7 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS_QR(CGeometry *geometry, C
 			
 			}
 			
-			//GS orthogolization
+			
 			for(i = 0;i<m;i++)
 			{
 				for(j=0;j<n;j++)
