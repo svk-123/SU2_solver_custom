@@ -4878,11 +4878,13 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS_QR(CGeometry *geometry, C
 
   	int i,l,j,cell_adj,n,m,k,x,z;
 	
-	double **A,dx,dy,du,w,derivatives[nPrimVarGrad+1][nDim+1];
+	double **A,dx,dy,dz,du,w,derivatives[nPrimVarGrad+1][nDim+1];
 	
 	double **w_A, *b,*u,**q,**r,*qb,del,rad;
 	
 	double dx1,dy1,dx2,dy2,du1,du2;
+	
+if (nDim==2) {	
 	
 	m = 2; // column  size (nxm)
 	del = 1e-12;   
@@ -5073,22 +5075,229 @@ void CEulerSolver::SetPrimitive_Reconst_Gradient_SDWLS_QR(CGeometry *geometry, C
 		free(qb);
 		
         
-        /*--- Computation of the gradient: S*c ---*/
-    for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
-      for (iDim = 0; iDim < nDim; iDim++) {
-		          
- 			  			 
-		  product = derivatives[iVar][iDim];
+				/*--- Computation of the gradient: S*c ---*/
+			for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
+			  for (iDim = 0; iDim < nDim; iDim++) {
+						  
+								 
+				  product = derivatives[iVar][iDim];
+					  
+					 
+				  node[iPoint]->SetReconstGradient_Primitive(iVar, iDim, product);
 			  
-		     
-	      node[iPoint]->SetReconstGradient_Primitive(iVar, iDim, product);
-      
-      }
-    }
+			  }
+			}
+						 
+		}
+	}
+  
+  
+  
+  
+  if (nDim==3) {	
+	
+	m = 3; // column  size (nxm)
+	del = 1e-12;   
+	  
+	  
+  /*--- Loop over points of the grid ---*/
+        
+  for (iPoint = 0; iPoint < nPointDomain; iPoint++) {
+           
+    /*--- Set the value of the singular ---*/
+    singular = false;
     
-                
+    /*--- Get coordinates ---*/
+    
+    Coord_i = geometry->node[iPoint]->GetCoord();
+    
+    /*--- Get primitives from CVariable ---*/
+    
+    PrimVar_i = node[iPoint]->GetPrimitive();
+                      
+    n = geometry->node[iPoint]->GetnPoint(); 
+           
+   
+		 	  
+    /*--- Inizialization of variables ---*/
+    
+        w_A = (double **)malloc(n*sizeof(double *));
+		
+		for(i=0;i<n;i++)
+		{
+			w_A[i] = (double *)malloc(m * sizeof(double));
+			
+		}
+		
+		A =(double **) malloc(n*sizeof(double *));
+		
+		for(i=0;i<n;i++)
+		{
+			A[i] = (double *)malloc(m * sizeof(double));
+		}
+		
+		q =(double **) malloc(n*sizeof(double *));
+		
+		for(i=0;i<n;i++)
+		{
+			q[i] = (double *)malloc(m * sizeof(double));
+		}
+		
+		r =(double **) malloc(m*sizeof(double *));
+		
+		for(i=0;i<m;i++)
+		{
+			r[i] = (double *)malloc(m * sizeof(double));
+		}
+		
+		//************************************************************
+		//Allocate matrix b = n x 1
+		
+		
+		b = (double *)malloc((n+1)*sizeof(double ));
+		
+		qb = (double *)malloc(m*sizeof(double ));
+		
+		
+		for(i = 0;i<n;i++)
+		{
+			
+		 iNeigh=i;
+         jPoint = geometry->node[iPoint]->GetPoint(iNeigh);
+         Coord_j = geometry->node[jPoint]->GetCoord();
+     
+              
+            dx = Coord_j[0]-Coord_i[0];
+			dy = Coord_j[1]-Coord_i[1];
+			dz = Coord_j[2]-Coord_i[2];
+			
+			A[i][0] = dx;
+			A[i][1] = dy;
+			A[i][2] = dz;
 
-  }
+		}
+		
+		for(z=0;z<nPrimVarGrad;z++)
+		{ 
+			for(i=0;i<n;i++)
+			{
+				iNeigh=i;
+				jPoint = geometry->node[iPoint]->GetPoint(iNeigh);
+				PrimVar_j = node[jPoint]->GetPrimitive();
+				
+				du = PrimVar_j[z]-PrimVar_i[z];
+
+				w = 1.0/(sqrt(fabs(du))+1e-12);
+								
+				w_A[i][0] = w * A[i][0];
+				w_A[i][1] = w * A[i][1];
+				w_A[i][2] = w * A[i][2];
+				
+				b[i] = w * du;
+			
+			}
+			
+			
+			for(i = 0;i<m;i++)
+			{
+				for(j=0;j<n;j++)
+				{
+					q[j][i] = w_A[j][i];
+				}
+				
+				for(j=0;j<=i-1;j++)
+				{
+					r[j][i] = 0;
+					
+					for(k=0;k<n;k++)
+					{
+						r[j][i] = r[j][i] + q[k][i]*q[k][j];
+					}
+					for(k=0;k<n;k++)
+					{
+						q[k][i] = q[k][i] - r[j][i] * q[k][j];
+					}
+					
+				}
+				
+				r[i][i] = 0;
+				
+				
+				
+				for(k=0;k<n;k++)
+				{
+					r[i][i] = r[i][i] + q[k][i]*q[k][i];
+				}
+				
+				r[i][i] = sqrt(r[i][i]);
+				
+				for(k=0;k<n;k++)
+				{
+					q[k][i] = q[k][i]/r[i][i];
+				}
+				
+			}
+			
+			for(j=0;j<m;j++)
+			{
+				
+				qb[j]=0;
+				for(i=0;i<n;i++)
+				{
+					qb[j] = qb[j] + q[i][j]* b[i];
+				}
+			}
+			
+			for(j=m-1;j>=0;j--)
+			{
+				for(i=m-1;i>=j+1;i--)
+				{
+					qb[j] = qb[j] - r[j][i] * derivatives[z][i];
+				}
+				derivatives[z][j] = qb[j]/r[j][j];
+				
+			}
+			
+			
+		}
+			
+		
+		for(i=0;i<n;i++)
+		{
+			free(w_A[i]);
+			free(A[i]);
+			free(q[i]);
+		}
+		
+		free(w_A);
+		free(A);
+		free(b);
+		free(q);
+	
+		
+		for(i=0;i<m;i++)
+		{
+			free(r[i]);
+		}
+		free(r);
+		free(qb);
+		
+        
+				/*--- Computation of the gradient: S*c ---*/
+			for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
+			  for (iDim = 0; iDim < nDim; iDim++) {
+						  
+								 
+				  product = derivatives[iVar][iDim];
+					  
+					 
+				  node[iPoint]->SetReconstGradient_Primitive(iVar, iDim, product);
+			  
+			  }
+			}
+						 
+		}
+	}
   
   
   
