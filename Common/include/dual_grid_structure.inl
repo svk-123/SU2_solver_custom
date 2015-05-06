@@ -28,7 +28,7 @@ inline void CPoint::ResetBoundary(void) { if (vertex != NULL) delete [] vertex; 
 
 inline void CPoint::ResetElem(void) { Elem.clear(); nElem = 0; }
 
-inline void CPoint::ResetPoint(void) { Point.clear(); Edge.clear(); nPoint = 0; }
+inline void CPoint::ResetPoint(void) { Point.clear(); Edge.clear(); nPoint = 0; n2Point = 0; }
 
 inline double CPoint::GetCoord(unsigned short val_dim) { return coord[val_dim]; }
 
@@ -58,8 +58,10 @@ inline unsigned long CPoint::GetElem(unsigned short val_elem) {	return Elem[val_
 inline long CPoint::GetEdge(unsigned short val_edge) { return Edge[val_edge]; }
 
 inline void CPoint::SetnPoint(unsigned short val_nPoint) { nPoint = val_nPoint; }
+inline void CPoint::Setn2Point(unsigned short val_n2Point) { n2Point = val_n2Point; }
 
 inline unsigned short CPoint::GetnPoint(void) {	return nPoint; }
+inline unsigned short CPoint::Getn2Point(void) {	return n2Point; }
 
 inline unsigned long CPoint::GetPoint(unsigned short val_point) { return Point[val_point]; }
 

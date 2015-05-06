@@ -186,8 +186,8 @@ CEulerVariable::CEulerVariable(double val_density, double *val_velocity, double 
   
   Reconst_Gradient_Primitive = new double* [nPrimVarGrad];
   for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
-    Reconst_Gradient_Primitive[iVar] = new double [nDim];
-    for (iDim = 0; iDim < nDim; iDim++)
+    Reconst_Gradient_Primitive[iVar] = new double [nDim+3];
+    for (iDim = 0; iDim < nDim+3; iDim++)
       Reconst_Gradient_Primitive[iVar][iDim] = 0.0;
   }
   
@@ -324,8 +324,8 @@ CEulerVariable::CEulerVariable(double *val_solution, unsigned short val_nDim, un
   
     Reconst_Gradient_Primitive = new double* [nPrimVarGrad];
   for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
-    Reconst_Gradient_Primitive[iVar] = new double [nDim];
-    for (iDim = 0; iDim < nDim; iDim++)
+    Reconst_Gradient_Primitive[iVar] = new double [nDim+3];
+    for (iDim = 0; iDim < nDim+3; iDim++)
       Reconst_Gradient_Primitive[iVar][iDim] = 0.0;
   }
   

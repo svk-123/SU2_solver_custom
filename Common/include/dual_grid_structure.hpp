@@ -130,7 +130,7 @@ public:
 class CPoint : public CDualGrid {
 private:
 	unsigned short nElem,	/*!< \brief Number of elements that set up the control volume. */
-	nPoint;					/*!< \brief Number of points that set up the control volume  */
+	nPoint,n2Point;					/*!< \brief Number of points that set up the control volume  */
 	vector<long> Elem;		/*!< \brief Elements that set up a control volume around a node. */
 	vector<unsigned long> Point;	/*!< \brief Points surrounding the central node of the control volume. */
 	vector<long> Edge;		/*!< \brief Edges that set up a control volume. */
@@ -255,7 +255,8 @@ public:
 	 * \param[in] val_nPoint - Number of points that compose the control volume (points surrounding points).
 	 */
 	void SetnPoint(unsigned short val_nPoint);
-	
+		void Setn2Point(unsigned short val_n2Point);
+
 	/*! 
 	 * \brief Get the coordinates dor the control volume.
 	 * \param[in] val_dim - Number of dimensions of the problem.
@@ -313,7 +314,8 @@ public:
 	 * \return Number of points that compose the control volume.
 	 */
 	unsigned short GetnPoint(void);
-	
+		unsigned short Getn2Point(void);
+
 	/*! 
 	 * \brief Set the elements that set the control volume.
 	 * \param[in] val_elem - Element to be added.		 
