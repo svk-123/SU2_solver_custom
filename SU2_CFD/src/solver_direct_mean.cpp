@@ -188,7 +188,7 @@ CEulerSolver::CEulerSolver(CGeometry *geometry, CConfig *config, unsigned short 
   
   /*--- Define some auxiliary vectors related to the geometry ---*/
   
-  Vector   = new double[nDim]; for (iDim = 0; iDim < nDim; iDim++) Vector[iDim]   = 0.0;
+  Vector   = new double[nDim]; for (iDim = 0; iDim < nDim ; iDim++) Vector[iDim]   = 0.0;
   Vector_i = new double[nDim]; for (iDim = 0; iDim < nDim; iDim++) Vector_i[iDim] = 0.0;
   Vector_j = new double[nDim]; for (iDim = 0; iDim < nDim; iDim++) Vector_j[iDim] = 0.0;
   

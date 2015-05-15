@@ -170,12 +170,12 @@ AM_DEFAULT_VERBOSITY = 0
 AUTOCONF = ${SHELL} /home/vinoth/SU2/SU2-3.2.3/missing --run autoconf
 AUTOHEADER = ${SHELL} /home/vinoth/SU2/SU2-3.2.3/missing --run autoheader
 AUTOMAKE = ${SHELL} /home/vinoth/SU2/SU2-3.2.3/missing --run automake-1.12
-AWK = mawk
+AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
-CGNS_CXX = -DHAVE_CGNS -I/usr/local/include
-CGNS_LD = /usr/local/lib/libcgns.a
+CGNS_CXX = 
+CGNS_LD = 
 CPP = gcc -E
 CPPFLAGS = 
 CXX = g++
